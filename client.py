@@ -3,6 +3,10 @@ import sys
 import PySimpleGUI as sg
 from enum import Enum
 import argparse
+import pickle
+
+EXTENSION_FICHERO = '.dat'
+PATH = 'directorio'
 
 class client :
 
@@ -10,17 +14,17 @@ class client :
     # *
     # * @brief Return codes for the protocol methods
     class RC(Enum) :
-        OK = 0
-        ERROR = 1
-        USER_ERROR = 2
+        OK: int = 0
+        ERROR: int = 1
+        USER_ERROR: int = 2
 
     # ****************** ATTRIBUTES ******************
     _server = None
     _port = -1
-    _quit = 0
-    _username = None
-    _alias = None
-    _date = None
+    _quit: int = 0
+    _username: str = None
+    _alias: str = None
+    _date: str = None
 
     # ******************** METHODS *******************
     # *
@@ -32,7 +36,9 @@ class client :
     @staticmethod
     def  register(user, window):
         window['_SERVER_'].print("s> REGISTER OK")
-        #  Write your code here
+        # sockets para conectar con servidor
+        
+
         return client.RC.ERROR
 
     # *
@@ -45,7 +51,8 @@ class client :
     def  unregister(user, window):
         window['_SERVER_'].print("s> UNREGISTER OK")
         #  Write your code here
-        return client.RC.ERROR
+        pass
+        #return client.RC.ERROR
 
 
     # *
@@ -112,7 +119,7 @@ class client :
 
     @staticmethod
     def window_register():
-        layout_register = [[sg.Text('Ful Name:'),sg.Input('Text',key='_REGISTERNAME_', do_not_clear=True, expand_x=True)],
+        layout_register = [[sg.Text('Full Name:'),sg.Input('Text',key='_REGISTERNAME_', do_not_clear=True, expand_x=True)],
                             [sg.Text('Alias:'),sg.Input('Text',key='_REGISTERALIAS_', do_not_clear=True, expand_x=True)],
                             [sg.Text('Date of birth:'),sg.Input('',key='_REGISTERDATE_', do_not_clear=True, expand_x=True, disabled=True, use_readonly_for_disable=False),
                             sg.CalendarButton("Select Date",close_when_date_chosen=True, target="_REGISTERDATE_", format='%d-%m-%Y',size=(10,1))],
