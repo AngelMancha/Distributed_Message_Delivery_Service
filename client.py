@@ -4,9 +4,9 @@ import PySimpleGUI as sg
 from enum import Enum
 import argparse
 import pickle
+import socket
+import sys
 
-EXTENSION_FICHERO = '.dat'
-PATH = 'directorio'
 
 class client :
 
@@ -35,10 +35,48 @@ class client :
     # * @return ERROR if another error occurred
     @staticmethod
     def  register(user, window):
-        window['_SERVER_'].print("s> REGISTER OK")
+        c_op = 0
         # sockets para conectar con servidor
-        
 
+        # Se comprueba que se hayan pasado los argumentos necesarios
+        if len(sys.argv) < 3:
+            print("Uso: client_register <host> <port>")
+            exit()
+        
+        # Creamos el socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Nos conectamos al servidor a través de los argumentos
+        server_address = (client._server, client._port)
+        print('connecting to {} port {}'.format(*server_address))
+        sock.connect(server_address)
+        
+        # Enviamos la info al servidor
+        try:
+            sock.sendall(len(client._username))
+            sock.sendall(client._username.encode("utf-8"))
+            sock.sendall(b'\0')
+            sock.sendall(len(client._alias))
+            sock.sendall(client._alias.encode("utf-8"))
+            sock.sendall(b'\0')
+            sock.sendall(len(client._date))
+            sock.sendall(client._date.encode("utf-8"))
+            sock.sendall(b'\0')
+            sock.sendall(str(c_op).encode("utf-8"))
+            sock.sendall(b'\0')
+            
+        finally:
+            result = int.from_bytes(sock.recv(4), byteorder = 'little')
+        
+        # Comprobamos los results
+        if result == 0:
+            window['_SERVER_'].print("s> REGISTER OK")
+            return client.RC.OK
+        if result == 1:
+            window['_SERVER_'].print("s> USERNAME IN USE")
+            return client.RC.USER_ERROR
+
+        window['_SERVER_'].print("s> REGISTER FAIL")
         return client.RC.ERROR
 
     # *
@@ -51,7 +89,7 @@ class client :
     def  unregister(user, window):
         window['_SERVER_'].print("s> UNREGISTER OK")
         #  Write your code here
-        pass
+        
         #return client.RC.ERROR
 
 
@@ -145,6 +183,10 @@ class client :
                 client._username = values['_REGISTERNAME_']
                 client._alias = values['_REGISTERALIAS_']
                 client._date = values['_REGISTERDATE_']
+                
+                
+                
+                
                 break
         window.Close()
 
@@ -224,11 +266,9 @@ class client :
 
             if (event == 'REGISTER'):
                 client.window_register()
-
                 if (client._alias == None or client._username == None or client._alias == 'Text' or client._username == 'Text' or client._date == None):
                     sg.Popup('NOT REGISTERED', title='ERROR', button_type=5, auto_close=True, auto_close_duration=1)
                     continue
-
                 window['_CLIENT_'].print('c> REGISTER ' + client._alias)
                 client.register(client._alias, window)
 
