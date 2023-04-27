@@ -22,7 +22,7 @@ pthread_cond_t cond_mensaje;
 
 void tratar_mensaje(void *mess) 
 {
-
+    dprintf(2, "He llegado a tratar\n");
     struct perfil mensaje;	        //mensaje local 		
     struct respuesta respuesta;	        //respuesta a la petición          
     int resultado;		                // resultado de la operación 
@@ -92,6 +92,8 @@ void tratar_mensaje(void *mess)
 
 
 int main(int argc, char *argv[]){
+    dprintf(2, "SERVER\n");
+
     struct perfil perfil;
 	pthread_attr_t t_attr;		
    	pthread_t thid;
@@ -171,37 +173,61 @@ int main(int argc, char *argv[]){
 		    perror("accept");
 		    return -1;
 	    }
+
+        else{
+            dprintf(2, "SERVER CONNECTED\n");
+        }
+ 
         
 
-        // Se reciben todos los campos de la petición del cliente
+        // Se reciben todos los calpos de la petición del cliente
         
+        // ********** USERNAME ***********
         if (read(sd_client, (char*) &len_username, sizeof(int)) < 0) {
             perror("Error al leer la longitud de username");
             return -1;
         }
-        
+        else {
+            dprintf(2, "Len recieved\n");
+            dprintf(2, "len username: %d\n", len_username);
+
+        }
+
+
         len_username = ntohl(len_username);
         username = malloc(len_username + 1);
-        if (read(sd_client, (char*) username, strlen(username)) < 0) {
+        dprintf(2, "len username: %d\n", len_username);
+
+        if (read(sd_client, (char*) username, len_username) < 0) {
             perror("Error al leer el username");
             free(username);
             return -1;
         }
+        dprintf(2, "USERNAME RECIEVED\n");
 
+
+        // *********** ALIAS ***********
         if (read(sd_client, (char*) &len_alias, sizeof(int)) < 0) {
             perror("Error al leer la longitud del alias");
             return -1;
         }
 
+        
         len_alias = ntohl(len_alias);
         alias = malloc(len_alias + 1);
-        if (read(sd_client, (char*) alias, strlen(alias)) < 0) {
+        dprintf(2, "len alias: %d\n", len_alias);
+
+        if (read(sd_client, (char*) alias, len_alias) < 0) {
             perror("Error al leer el alias");
             free(alias);
             return -1;
         }
 
 
+        dprintf(2, "ALIAS RECIEVED\n");
+
+
+        // *********** DATE ***********
         if (read(sd_client, (char*) &len_date, sizeof(int)) < 0) {
             perror("Error al leer la longitud de la fecha");
             return -1;
@@ -209,28 +235,36 @@ int main(int argc, char *argv[]){
         
         len_date = ntohl(len_date);
         date = malloc(len_date + 1);
-        if (read(sd_client, (char*) date, sizeof(date)) < 0) {
+        if (read(sd_client, (char*) date, len_date) < 0) {
             perror("Error al leer la fecha");
             free(date);
             return -1;
         }
+        dprintf(2, "DATE RECIEVED\n");
+        dprintf(2, "len date: %d\n", len_date);
 
+
+        // *********** OPERATION CODE ***********
         if (read(sd_client, (char*) &c_op, sizeof(int)) < 0) {
             perror("Error al leer la respuesta");
             return -1;
         }
+        dprintf(2, "COP RECIEVED\n");
+        dprintf(2, "cop: %d\n", c_op);
 
         c_op = ntohl(c_op);
 
 
         //se rellena la estructura de la petición
-        strcpy(perfil.nombre, username);
-        strcpy(perfil.alias, alias);
-        strcpy(perfil.fecha, date);
+        sprintf(perfil.nombre, "%s", username);
+       // strcpy(perfil.nombre, username);
+        sprintf(perfil.alias, "%s", alias);
+        sprintf(perfil.fecha, "%s", date);
         perfil.c_op = c_op;
         perfil.sd_client = sd_client;
+        
 
- 
+        dprintf(2, "Hola he llegado aqui\n");
         if (pthread_create(&thid, &t_attr, (void *)tratar_mensaje, (void *)&perfil) == 0) {
             // se espera a que el thread copie el mensaje 
 			pthread_mutex_lock(&mutex_mensaje);

@@ -51,22 +51,31 @@ class client :
         print('connecting to {} port {}'.format(*server_address))
         sock.connect(server_address)
         
+        
         # Enviamos la info al servidor
         try:
-            sock.sendall(len(client._username))
+            
+            len_username = socket.htonl(len(client._username.encode("utf-8")))
+            len_alias = socket.htonl(len(client._alias.encode("utf-8")))
+            len_date = socket.htonl(len(client._alias.encode("utf-8")))
+            c_op = socket.htonl(c_op)
+
+
+            sock.sendall(len_username.to_bytes(4, 'big'))
             sock.sendall(client._username.encode("utf-8"))
             sock.sendall(b'\0')
-            sock.sendall(len(client._alias))
+            sock.sendall(len_alias.to_bytes(4, 'big'))
             sock.sendall(client._alias.encode("utf-8"))
             sock.sendall(b'\0')
-            sock.sendall(len(client._date))
+            sock.sendall(len_date.to_bytes(4, 'big'))
             sock.sendall(client._date.encode("utf-8"))
             sock.sendall(b'\0')
-            sock.sendall(str(c_op).encode("utf-8"))
-            sock.sendall(b'\0')
+            sock.sendall(c_op.to_bytes(4, 'big'))
             
+        except socket.error as e:
+                print(f"Error al enviar los datos: {e}")
         finally:
-            result = int.from_bytes(sock.recv(4), byteorder = 'little')
+            result = int.from_bytes(sock.recv(4), 'big')
         
         # Comprobamos los results
         if result == 0:
