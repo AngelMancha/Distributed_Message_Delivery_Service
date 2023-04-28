@@ -54,23 +54,19 @@ class client :
         
         # Enviamos la info al servidor
         try:
-            
-            len_username = socket.htonl(len(client._username.encode("utf-8")))
-            len_alias = socket.htonl(len(client._alias.encode("utf-8")))
-            len_date = socket.htonl(len(client._alias.encode("utf-8")))
-            c_op = socket.htonl(c_op)
 
+            sock.sendall(client._alias.encode("utf-8"))
+            sock.sendall(b'\0')    
 
-            sock.sendall(len_username.to_bytes(4, 'big'))
             sock.sendall(client._username.encode("utf-8"))
             sock.sendall(b'\0')
-            sock.sendall(len_alias.to_bytes(4, 'big'))
-            sock.sendall(client._alias.encode("utf-8"))
-            sock.sendall(b'\0')
-            sock.sendall(len_date.to_bytes(4, 'big'))
+            
             sock.sendall(client._date.encode("utf-8"))
             sock.sendall(b'\0')
+            
+            c_op = "REGISTER"
             sock.sendall(c_op.to_bytes(4, 'big'))
+            sock.sendall(b'\0')
             
         except socket.error as e:
                 print(f"Error al enviar los datos: {e}")

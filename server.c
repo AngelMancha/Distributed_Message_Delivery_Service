@@ -10,8 +10,9 @@
 #include <netinet/in.h>
 #include "gestiones.h"
 #include "comunicacion.h"
+#include <errno.h>
 
-#define MAXSIZE 255
+#define MAXSIZE 1024
 
 
 
@@ -22,6 +23,7 @@ pthread_cond_t cond_mensaje;
 
 void tratar_mensaje(void *mess) 
 {
+    
     dprintf(2, "He llegado a tratar\n");
     struct perfil mensaje;	        //mensaje local 		
     struct respuesta respuesta;	        //respuesta a la petición          
@@ -30,7 +32,7 @@ void tratar_mensaje(void *mess)
     pthread_mutex_lock(&mutex_mensaje);
 
     //copia la petición a la variable mensaje
-    mensaje = (*(struct perfil *) mess);
+   mensaje = (*(struct perfil *) mess);
     
     //Como ya se ha copiado el mensaje, despetarmos al servidor 
     mensaje_no_copiado = false;
@@ -40,16 +42,15 @@ void tratar_mensaje(void *mess)
 
     //leemos y ejecutamos la petición
 
-    switch(mensaje.c_op) {
-    case 0:
+    if (strcmp(mensaje.c_op, "REGISTER") == 0) {
         resultado = register_gestiones(mensaje);
-        break;
-
-    default:
+        
+    }
+    else {
         printf("Error: código de operación no válido.\n");
         exit(-1);
-        break;
-}
+    }
+
 
     
     respuesta.code_error = resultado;
@@ -70,8 +71,7 @@ void tratar_mensaje(void *mess)
     //     perror("write: ");  
     // }
     
-    // char valor3[100];
-    // sprintf(valor3, "%lf", respuesta.tupla_peticion.valor3);
+
 
 
     // if (write(((struct peticion *)mess)->sd_client, &valor3, sizeof(valor3)) < 0)
@@ -91,6 +91,52 @@ void tratar_mensaje(void *mess)
 }
 
 
+ssize_t readLine(int fd, void *buffer, size_t n)
+{
+	ssize_t numRead;  /* num of bytes fetched by last read() */
+	size_t totRead;	  /* total bytes read so far */
+	char *buf;
+	char ch;
+
+
+	if (n <= 0 || buffer == NULL) { 
+		errno = EINVAL;
+		return -1; 
+	}
+
+	buf = buffer;
+	totRead = 0;
+	
+	for (;;) {
+        	numRead = read(fd, &ch, 1);	/* read a byte */
+
+        	if (numRead == -1) {	
+            		if (errno == EINTR)	/* interrupted -> restart read() */
+                		continue;
+            	else
+			return -1;		/* some other error */
+        	} else if (numRead == 0) {	/* EOF */
+            		if (totRead == 0)	/* no byres read; return 0 */
+                		return 0;
+			else
+                		break;
+        	} else {			/* numRead must be 1 if we get here*/
+            		if (ch == '\n')
+                		break;
+            		if (ch == '\0')
+                		break;
+            		if (totRead < n - 1) {		/* discard > (n-1) bytes */
+				totRead++;
+				*buf++ = ch; 
+			}
+		} 
+	}
+	
+	*buf = '\0';
+    	return totRead;
+}
+
+
 int main(int argc, char *argv[]){
     dprintf(2, "SERVER\n");
 
@@ -98,14 +144,13 @@ int main(int argc, char *argv[]){
 	pthread_attr_t t_attr;		
    	pthread_t thid;
 
-    char *username;
-    char *alias;
-    char *date;
-    int c_op;
 
-    int len_username;
-    int len_alias;
-    int len_date;
+
+    char username [MAXSIZE];
+    char alias [MAXSIZE];
+    char date [MAXSIZE];
+    char c_op[MAXSIZE];
+
 
     struct sockaddr_in address; // direccion del servidor
     int sd_server; // socket del servidor
@@ -165,106 +210,67 @@ int main(int argc, char *argv[]){
     mensaje_no_copiado = true;
 
     while(1) {
+
+        sd_client = accept(sd_server, (struct sockaddr *)&address, (socklen_t*)&addrlen);
+    if (sd_client <= 0) {
+        perror("accept");
+        return -1;
+    }
+
+
+
+    //     // Se reciben todos los calpos de la petición del cliente
         
-        // se establece la conexión con el cliente
-        sd_client = accept(sd_server, (struct sockaddr *)&address,  (socklen_t*)&addrlen) ;
-       	if (sd_client <= 0)
-	     {
-		    perror("accept");
-		    return -1;
-	    }
-
-        else{
-            dprintf(2, "SERVER CONNECTED\n");
-        }
- 
-        
-
-        // Se reciben todos los calpos de la petición del cliente
-        
-        // ********** USERNAME ***********
-        if (read(sd_client, (char*) &len_username, sizeof(int)) < 0) {
-            perror("Error al leer la longitud de username");
-            return -1;
-        }
-        else {
-            dprintf(2, "Len recieved\n");
-            dprintf(2, "len username: %d\n", len_username);
-
-        }
+    //     // ********** ALIAS ***********
+         if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
+             perror("Error al leer el alias");
+             return -1;
+         }
+         dprintf(2, "ALIAS RECIEVED\n");
+         dprintf(2, "alias: %s\n", alias);
 
 
-        len_username = ntohl(len_username);
-        username = malloc(len_username + 1);
-        dprintf(2, "len username: %d\n", len_username);
+    //     // *********** USERNAME ***********
 
-        if (read(sd_client, (char*) username, len_username) < 0) {
-            perror("Error al leer el username");
-            free(username);
-            return -1;
+      if (readLine(sd_client, (char*) username, MAXSIZE) < 0) {
+           perror("Error al leer el username");
+           return -1;
         }
         dprintf(2, "USERNAME RECIEVED\n");
+        dprintf(2, "username: %s\n", username);
+    
 
 
-        // *********** ALIAS ***********
-        if (read(sd_client, (char*) &len_alias, sizeof(int)) < 0) {
-            perror("Error al leer la longitud del alias");
-            return -1;
-        }
-
-        
-        len_alias = ntohl(len_alias);
-        alias = malloc(len_alias + 1);
-        dprintf(2, "len alias: %d\n", len_alias);
-
-        if (read(sd_client, (char*) alias, len_alias) < 0) {
-            perror("Error al leer el alias");
-            free(alias);
-            return -1;
-        }
-
-
-        dprintf(2, "ALIAS RECIEVED\n");
-
-
-        // *********** DATE ***********
-        if (read(sd_client, (char*) &len_date, sizeof(int)) < 0) {
-            perror("Error al leer la longitud de la fecha");
-            return -1;
-        }
-        
-        len_date = ntohl(len_date);
-        date = malloc(len_date + 1);
-        if (read(sd_client, (char*) date, len_date) < 0) {
+    //     *********** DATE ***********
+        // date = malloc(len_date + 1);
+        if (readLine(sd_client, (char*) date, MAXSIZE) < 0) {
             perror("Error al leer la fecha");
-            free(date);
             return -1;
         }
         dprintf(2, "DATE RECIEVED\n");
-        dprintf(2, "len date: %d\n", len_date);
+        dprintf(2, "date: %s\n", date);
+        
 
 
-        // *********** OPERATION CODE ***********
-        if (read(sd_client, (char*) &c_op, sizeof(int)) < 0) {
+
+    // *********** OPERATION CODE ***********
+        if (readLine(sd_client, (char*) &c_op, MAXSIZE) < 0) {
             perror("Error al leer la respuesta");
             return -1;
         }
         dprintf(2, "COP RECIEVED\n");
-        dprintf(2, "cop: %d\n", c_op);
-
-        c_op = ntohl(c_op);
+        dprintf(2, "cop: %s\n", c_op);
 
 
         //se rellena la estructura de la petición
         sprintf(perfil.nombre, "%s", username);
-       // strcpy(perfil.nombre, username);
         sprintf(perfil.alias, "%s", alias);
         sprintf(perfil.fecha, "%s", date);
-        perfil.c_op = c_op;
+        sprintf(perfil.c_op, "%s", c_op);
         perfil.sd_client = sd_client;
         
 
-        dprintf(2, "Hola he llegado aqui\n");
+    //     dprintf(2, "Hola he llegado aqui\n");
         if (pthread_create(&thid, &t_attr, (void *)tratar_mensaje, (void *)&perfil) == 0) {
             // se espera a que el thread copie el mensaje 
 			pthread_mutex_lock(&mutex_mensaje);
