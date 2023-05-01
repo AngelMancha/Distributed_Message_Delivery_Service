@@ -41,9 +41,12 @@ void tratar_mensaje(void *mess)
 
 
     //leemos y ejecutamos la petición
-
+    
     if (strcmp(mensaje.c_op, "REGISTER") == 0) {
         resultado = register_gestiones(mensaje);
+        
+    } else if (strcmp(mensaje.c_op, "UNREGISTER") == 0) {
+        resultado = unregister_gestiones(mensaje);
         
     }
     else {
@@ -54,34 +57,21 @@ void tratar_mensaje(void *mess)
 
     
     respuesta.code_error = resultado;
+    dprintf(2, "Respuesta: %d\n", respuesta.code_error);
     
-    
+    // Traducción de la respuesta a formato de red
+
+    respuesta.code_error = htonl(respuesta.code_error);
+
     // Se envian todos los campos de la respuesta
-
-    // if (write ( ((struct peticion *)mess)->sd_client, &respuesta.tupla_peticion.clave, sizeof(int)) < 0)
-    // {
-    //     perror("write: ");
-    // }
-    // if (write ( ((struct peticion *)mess)->sd_client, &respuesta.tupla_peticion.valor1, sizeof(respuesta.tupla_peticion.valor1)) < 0)
-    // {
-    //     perror("write: ");  
-    // }
-    // if (write ( ((struct peticion *)mess)->sd_client, &respuesta.tupla_peticion.valor2, sizeof(int)) < 0)
-    // {
-    //     perror("write: ");  
-    // }
-    
-
-
-
-    // if (write(((struct peticion *)mess)->sd_client, &valor3, sizeof(valor3)) < 0)
-    // {
-    //     perror("write: ");
-    // }
-
     if (write ( ((struct perfil *)mess)->sd_client, &respuesta.code_error, sizeof(int)) < 0)
     {
         perror("write: ");
+    }
+
+    else
+    {
+        printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
     }
     
     close (((struct perfil *)mess)->sd_client);
@@ -226,7 +216,7 @@ int main(int argc, char *argv[]){
              perror("Error al leer el alias");
              return -1;
          }
-         dprintf(2, "ALIAS RECIEVED\n");
+
          dprintf(2, "alias: %s\n", alias);
 
 
@@ -236,7 +226,7 @@ int main(int argc, char *argv[]){
            perror("Error al leer el username");
            return -1;
         }
-        dprintf(2, "USERNAME RECIEVED\n");
+
         dprintf(2, "username: %s\n", username);
     
 
@@ -247,7 +237,7 @@ int main(int argc, char *argv[]){
             perror("Error al leer la fecha");
             return -1;
         }
-        dprintf(2, "DATE RECIEVED\n");
+
         dprintf(2, "date: %s\n", date);
         
 
@@ -258,19 +248,31 @@ int main(int argc, char *argv[]){
             perror("Error al leer la respuesta");
             return -1;
         }
-        dprintf(2, "COP RECIEVED\n");
+
         dprintf(2, "cop: %s\n", c_op);
 
-
-        //se rellena la estructura de la petición
-        sprintf(perfil.nombre, "%s", username);
-        sprintf(perfil.alias, "%s", alias);
-        sprintf(perfil.fecha, "%s", date);
-        sprintf(perfil.c_op, "%s", c_op);
-        perfil.sd_client = sd_client;
+        dprintf(2, "Hola he llegado aqui\n");
         
 
-    //     dprintf(2, "Hola he llegado aqui\n");
+        perfil.nombre = malloc(MAXSIZE);
+        perfil.alias = malloc(MAXSIZE);
+        perfil.fecha = malloc(MAXSIZE);
+        perfil.c_op = malloc(MAXSIZE);
+
+        //se rellena la estructura de la petición
+        strcpy(perfil.nombre, username);
+
+        strcpy(perfil.alias, alias);
+
+
+        strcpy(perfil.fecha, date);
+
+        strcpy(perfil.c_op, c_op);
+
+        perfil.sd_client = sd_client;
+
+
+        dprintf(2, "Hola he llegado aqui 2\n");
         if (pthread_create(&thid, &t_attr, (void *)tratar_mensaje, (void *)&perfil) == 0) {
             // se espera a que el thread copie el mensaje 
 			pthread_mutex_lock(&mutex_mensaje);

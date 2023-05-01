@@ -12,16 +12,15 @@ int register_gestiones(struct perfil perfil){
     
     FILE *fichero_perfil;
     char nombre_fichero[50];
-    char *alias = malloc(strlen(perfil.alias));
 
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, alias, formato_fichero);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, formato_fichero);
     
     // Comprobamos la existencia de la clave
 
     if (access(nombre_fichero, F_OK) == 0) 
     {
-        perror("set_value(): La clave existe");
-        return -1;
+        perror("register_gestiones(): El usuario ya existe");
+        return 1;
     }
 
     fichero_perfil = fopen(nombre_fichero, "wb");
@@ -33,10 +32,39 @@ int register_gestiones(struct perfil perfil){
     } else 
     {
         printf("Registro(): No se pudo abrir el archivo.\n");
-        return -1;
+        return 2;
     }
-
-    free(alias);
+    printf("El usuario %s se ha registrado con éxito\n", perfil.alias);
+   
     return 0;
 }
+
+
+int unregister_gestiones(struct perfil perfil)
+{
+    char nombre_fichero[50];
+
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, formato_fichero);
+
+    // Comprobamos si hay existencia del fichero
+    if (access(nombre_fichero, F_OK) != 0) 
+    {
+        perror("unregister_gestiones(): La clave no existe");
+        return 1;
+    }
+    
+    //eliminamos el fichero
+    if (remove(nombre_fichero) != 0) 
+    {
+        perror("Ha ocurrido un error al dar de baja al usuario");
+        return 2;
+    } 
+
+    printf("Usuario %s dado de baja con éxito\n", perfil.alias);
+
+    
+    return 0;
+
+}
+
 

@@ -51,7 +51,6 @@ class client :
         print('connecting to {} port {}'.format(*server_address))
         sock.connect(server_address)
         
-        
         # Enviamos la info al servidor
         try:
 
@@ -65,14 +64,16 @@ class client :
             sock.sendall(b'\0')
             
             c_op = "REGISTER"
-            sock.sendall(c_op.to_bytes(4, 'big'))
+            sock.sendall(c_op.encode("utf-8"))
             sock.sendall(b'\0')
             
         except socket.error as e:
                 print(f"Error al enviar los datos: {e}")
         finally:
             result = int.from_bytes(sock.recv(4), 'big')
-        
+            #result = socket.ntohl(result)
+            print("ME CAGO EN TU PUTA MADRE")
+            print("RESULT IN CLIENT " + str(result))
         # Comprobamos los results
         if result == 0:
             window['_SERVER_'].print("s> REGISTER OK")
@@ -80,9 +81,9 @@ class client :
         if result == 1:
             window['_SERVER_'].print("s> USERNAME IN USE")
             return client.RC.USER_ERROR
-
-        window['_SERVER_'].print("s> REGISTER FAIL")
-        return client.RC.ERROR
+        if result == 2:
+            window['_SERVER_'].print("s> REGISTER FAIL")
+            return client.RC.ERROR
 
     # *
     # 	 * @param user - User name to unregister from the system
@@ -92,7 +93,51 @@ class client :
     # 	 * @return ERROR if another error occurred
     @staticmethod
     def  unregister(user, window):
-        window['_SERVER_'].print("s> UNREGISTER OK")
+        c_op = 0
+        # sockets para conectar con servidor
+
+        # Creamos el socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Nos conectamos al servidor a través de los argumentos
+        server_address = (client._server, client._port)
+        print('connecting to {} port {}'.format(*server_address))
+        sock.connect(server_address)
+        
+        # Enviamos la info al servidor
+        try:
+
+            sock.sendall(client._alias.encode("utf-8"))
+            sock.sendall(b'\0')    
+
+            sock.sendall(client._username.encode("utf-8"))
+            sock.sendall(b'\0')
+            
+            sock.sendall(client._date.encode("utf-8"))
+            sock.sendall(b'\0')
+            
+            c_op = "UNREGISTER"
+            sock.sendall(c_op.encode("utf-8"))
+            sock.sendall(b'\0')
+            
+        except socket.error as e:
+                print(f"Error al enviar los datos: {e}")
+        finally:
+            result = int.from_bytes(sock.recv(4), 'big')
+            #result = socket.ntohl(result)
+            print("ME CAGO EN TU PUTA MADRE")
+            print("RESULT IN CLIENT " + str(result))
+        # Comprobamos los results
+        if result == 0:
+            window['_SERVER_'].print("s> UNREGISTER OK")
+            return client.RC.OK
+        if result == 1:
+            window['_SERVER_'].print("s> USERNAME DOES NOT EXIST")
+            return client.RC.USER_ERROR
+        if result == 2:
+            window['_SERVER_'].print("s> UNREGISTER FAIL")
+            return client.RC.ERROR
+
         #  Write your code here
         
         #return client.RC.ERROR

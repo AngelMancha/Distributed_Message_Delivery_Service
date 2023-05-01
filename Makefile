@@ -5,7 +5,7 @@ LDFLAGS = -L. -lpthread -lrt
 SERVER = server.c
 
 all: server
-
+	rm ./DDBB/*
 server: $(SERVER) gestiones.c
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
