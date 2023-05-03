@@ -9,6 +9,9 @@ struct perfil {
     char *alias;
     char *fecha;
     char *c_op;
+    int status;
+    char *IP;
+    int port;
 };
 
 

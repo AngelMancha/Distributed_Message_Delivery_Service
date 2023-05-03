@@ -70,9 +70,11 @@ class client :
         except socket.error as e:
                 print(f"Error al enviar los datos: {e}")
         finally:
+            
             result = int.from_bytes(sock.recv(4), 'big')
+            sock.close()
+
             #result = socket.ntohl(result)
-            print("ME CAGO EN TU PUTA MADRE")
             print("RESULT IN CLIENT " + str(result))
         # Comprobamos los results
         if result == 0:
@@ -124,6 +126,9 @@ class client :
                 print(f"Error al enviar los datos: {e}")
         finally:
             result = int.from_bytes(sock.recv(4), 'big')
+            
+            sock.close()
+
             #result = socket.ntohl(result)
             print("ME CAGO EN TU PUTA MADRE")
             print("RESULT IN CLIENT " + str(result))
@@ -137,7 +142,9 @@ class client :
         if result == 2:
             window['_SERVER_'].print("s> UNREGISTER FAIL")
             return client.RC.ERROR
-
+        
+        
+        
         #  Write your code here
         
         #return client.RC.ERROR
@@ -151,6 +158,30 @@ class client :
     # * @return ERROR if another error occurred
     @staticmethod
     def  connect(user, window):
+        c_op = "CONNECT"
+        # Creamos un objeto de socket
+        client_socket = socket.socket()
+
+        # Enlazamos el socket a una dirección IP y puerto libres seleccionados por el sistema operativo
+        client_socket.bind(('localhost', 0))
+
+        # Conectamos el socket al servidor y enviamos el número de puerto
+        server_address = (client._server, client._port)
+        client_socket.connect(server_address)
+        # (1) Busca el primer puerto libre
+        port = client_socket.getsockname()[1]
+        client_socket.send(str(port).encode())
+
+        print("Conectado al servidor en el puerto" + str(port))
+        # Enviamos y recibimos datos con el servidor
+        # data = "Hola, servidor!"
+        # client_socket.sendall(data.encode())
+        # response = client_socket.recv(1024).decode()
+        # print(response)
+
+        # Cerramos el socket
+        client_socket.close()
+        
         window['_SERVER_'].print("s> CONNECT OK")
         #  Write your code here
         return client.RC.ERROR

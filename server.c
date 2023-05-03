@@ -43,6 +43,7 @@ void tratar_mensaje(void *mess)
     //leemos y ejecutamos la petición
     
     if (strcmp(mensaje.c_op, "REGISTER") == 0) {
+        dprintf(2, "\n\nSe ha hecho una llamada al método REGISTER\n");
         resultado = register_gestiones(mensaje);
         
     } else if (strcmp(mensaje.c_op, "UNREGISTER") == 0) {
@@ -133,7 +134,6 @@ int main(int argc, char *argv[]){
     struct perfil perfil;
 	pthread_attr_t t_attr;		
    	pthread_t thid;
-
 
 
     char username [MAXSIZE];
