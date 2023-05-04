@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -13,7 +14,6 @@
 #include <errno.h>
 
 #define MAXSIZE 1024
-
 
 
 //mutex
@@ -49,6 +49,8 @@ void tratar_mensaje(void *mess)
     } else if (strcmp(mensaje.c_op, "UNREGISTER") == 0) {
         resultado = unregister_gestiones(mensaje);
         
+    } else if (strcmp(mensaje.c_op, "CONNECT") == 0) {
+        resultado = connect_gestiones();
     }
     else {
         printf("Error: código de operación no válido.\n");
@@ -140,6 +142,7 @@ int main(int argc, char *argv[]){
     char alias [MAXSIZE];
     char date [MAXSIZE];
     char c_op[MAXSIZE];
+    char port[MAXSIZE];
 
 
     struct sockaddr_in address; // direccion del servidor
@@ -202,22 +205,27 @@ int main(int argc, char *argv[]){
     while(1) {
 
         sd_client = accept(sd_server, (struct sockaddr *)&address, (socklen_t*)&addrlen);
-    if (sd_client <= 0) {
-        perror("accept");
-        return -1;
-    }
+        if (sd_client <= 0) {
+            perror("accept");
+            return -1;
+        }
+
+
+        // Obtener la IP del cliente
+        perfil.IP = inet_ntoa(address.sin_addr);
+        printf("Client IP address: %s\n", perfil.IP);
 
 
 
-    //     // Se reciben todos los calpos de la petición del cliente
+        // Se reciben todos los campos de la petición del cliente
         
-    //     // ********** ALIAS ***********
-         if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
-             perror("Error al leer el alias");
-             return -1;
-         }
+        // ********** ALIAS ***********
+        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
+            perror("Error al leer el alias");
+            return -1;
+        }
 
-         dprintf(2, "alias: %s\n", alias);
+        dprintf(2, "alias: %s\n", alias);
 
 
     //     // *********** USERNAME ***********
@@ -251,9 +259,21 @@ int main(int argc, char *argv[]){
 
         dprintf(2, "cop: %s\n", c_op);
 
-        dprintf(2, "Hola he llegado aqui\n");
+
+    // *********** USER PORT **************
+        if (readLine(sd_client, (char*) &port, MAXSIZE) < 0) {
+            perror("Error al leer la respuesta");
+            return -1;
+        }
+
+        dprintf(2, "PORT: %s\n", port);
+        
         
 
+        dprintf(2, "SECOND TRY: %s\n", port);
+        
+
+        // Reserva de memoria
         perfil.nombre = malloc(MAXSIZE);
         perfil.alias = malloc(MAXSIZE);
         perfil.fecha = malloc(MAXSIZE);
@@ -268,6 +288,8 @@ int main(int argc, char *argv[]){
         strcpy(perfil.fecha, date);
 
         strcpy(perfil.c_op, c_op);
+
+        perfil.port = (int) strtol(port, NULL, MAXSIZE);
 
         perfil.sd_client = sd_client;
 

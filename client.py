@@ -53,18 +53,25 @@ class client :
         
         # Enviamos la info al servidor
         try:
-
+            ############ ALIAS ############
             sock.sendall(client._alias.encode("utf-8"))
             sock.sendall(b'\0')    
 
+            ############ USERNAME ############
             sock.sendall(client._username.encode("utf-8"))
             sock.sendall(b'\0')
             
+            ############ DATE ############
             sock.sendall(client._date.encode("utf-8"))
             sock.sendall(b'\0')
             
+            ############ OP. CODE ############
             c_op = "REGISTER"
             sock.sendall(c_op.encode("utf-8"))
+            sock.sendall(b'\0')
+            
+            ############ PORT ############
+            sock.sendall(str(client._port).encode("utf-8"))
             sock.sendall(b'\0')
             
         except socket.error as e:
@@ -108,19 +115,27 @@ class client :
         
         # Enviamos la info al servidor
         try:
-
+            ############ ALIAS ############
             sock.sendall(client._alias.encode("utf-8"))
             sock.sendall(b'\0')    
 
+            ############ USERNAME ############
             sock.sendall(client._username.encode("utf-8"))
             sock.sendall(b'\0')
             
+            ############ DATE ############
             sock.sendall(client._date.encode("utf-8"))
             sock.sendall(b'\0')
             
+            ############ OP. CODE ############
             c_op = "UNREGISTER"
             sock.sendall(c_op.encode("utf-8"))
             sock.sendall(b'\0')
+            
+            ############ PORT ############
+            sock.sendall(str(client._port).encode("utf-8"))
+            sock.sendall(b'\0')
+            
             
         except socket.error as e:
                 print(f"Error al enviar los datos: {e}")
@@ -130,7 +145,6 @@ class client :
             sock.close()
 
             #result = socket.ntohl(result)
-            print("ME CAGO EN TU PUTA MADRE")
             print("RESULT IN CLIENT " + str(result))
         # Comprobamos los results
         if result == 0:
@@ -143,11 +157,6 @@ class client :
             window['_SERVER_'].print("s> UNREGISTER FAIL")
             return client.RC.ERROR
         
-        
-        
-        #  Write your code here
-        
-        #return client.RC.ERROR
 
 
     # *
@@ -168,11 +177,35 @@ class client :
         # Conectamos el socket al servidor y enviamos el número de puerto
         server_address = (client._server, client._port)
         client_socket.connect(server_address)
-        # (1) Busca el primer puerto libre
-        port = client_socket.getsockname()[1]
-        client_socket.send(str(port).encode())
+        
+        try: 
+            ############ ALIAS ############
+            client_socket.sendall(client._alias.encode("utf-8"))
+            client_socket.sendall(b'\0')    
 
-        print("Conectado al servidor en el puerto" + str(port))
+            ############ USERNAME ############
+            client_socket.sendall(client._username.encode("utf-8"))
+            client_socket.sendall(b'\0')
+            
+            ############ DATE ############
+            client_socket.sendall(client._date.encode("utf-8"))
+            client_socket.sendall(b'\0')
+            
+            ############ CODE ############
+            c_op = "CONNECT"
+            client_socket.sendall(c_op.encode("utf-8"))
+            client_socket.sendall(b'\0')
+            
+            ############ PORT ############
+            # (1) Busca el primer puerto libre
+            port = client_socket.getsockname()[1]
+            client_socket.send(str(port).encode())
+
+            print("Conectado al servidor en el puerto" + str(port))
+        finally:
+            result = int.from_bytes(client_socket.recv(4), 'big')
+            
+            client_socket.close()
         # Enviamos y recibimos datos con el servidor
         # data = "Hola, servidor!"
         # client_socket.sendall(data.encode())

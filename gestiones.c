@@ -68,3 +68,9 @@ int unregister_gestiones(struct perfil perfil)
 }
 
 
+int connect_gestiones() 
+{
+    
+    printf("Hola mundo\n");
+    return 0;
+}
