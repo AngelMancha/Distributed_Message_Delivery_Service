@@ -6,6 +6,7 @@ import argparse
 import pickle
 import socket
 import sys
+import threading
 
 
 class client :
@@ -157,6 +158,8 @@ class client :
             window['_SERVER_'].print("s> UNREGISTER FAIL")
             return client.RC.ERROR
         
+        
+        
 
 
     # *
@@ -201,6 +204,12 @@ class client :
             port = client_socket.getsockname()[1]
             client_socket.send(str(port).encode())
 
+            # (2) se llama al hilo que espera a que el servidor se conecte a ese puerto
+            connection_server_th = threading.Thread(target=client.wait_connection, args=(port, server_address))
+            connection_server_th.start()
+            connection_server_th.join()
+            
+            
             print("Conectado al servidor en el puerto" + str(port))
         finally:
             result = int.from_bytes(client_socket.recv(4), 'big')
@@ -267,6 +276,29 @@ class client :
         window['_SERVER_'].print("s> CONNECTED USERS OK")
         #  Write your code here
         return client.RC.ERROR
+
+
+    @staticmethod
+    def connection_server_th(port: int, ip: str):
+        # Crea un objeto socket
+        mi_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Enlaza el socket a la dirección y puerto especificados
+        mi_socket.bind((ip, port))
+
+        # Comienza a escuchar conexiones entrantes
+        mi_socket.listen()
+
+        # Acepta una conexión entrante y crea un nuevo socket para comunicarnos con el cliente
+        conexion, direccion_cliente = mi_socket.accept()
+
+        # Realiza cualquier operación que necesites con el socket de la conexión aquí
+        # ...
+
+        # Cierra la conexión y el socket
+        conexion.close()
+        mi_socket.close()
+    
 
 
     @staticmethod

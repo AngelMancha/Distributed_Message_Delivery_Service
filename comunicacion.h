@@ -9,7 +9,7 @@ struct perfil {
     char *alias;
     char *fecha;
     char *c_op;
-    int status;
+    char * status;
     char *IP;
     int port;
 };
@@ -17,5 +17,11 @@ struct perfil {
 
 struct respuesta {
     int code_error;
+};
+
+
+struct comunicacion_client{
+    char *IP;
+    int port;
 };
 #endif

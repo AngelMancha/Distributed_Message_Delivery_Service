@@ -21,9 +21,38 @@ pthread_mutex_t mutex_mensaje;
 int mensaje_no_copiado;
 pthread_cond_t cond_mensaje;
 
+//función que actúa como cliente dentro del servidor para conectarse al puerto del cliente
+void connection_client(void *mess)
+{   struct comunicacion_client mensaje;
+
+    dprintf(2, "He llegado a connection_client\n");
+
+    mensaje = (*(struct comunicacion_client *) mess);
+
+    struct sockaddr_in address; // direccion del servidor
+    int sd_client; // socket del cliente
+    int addrlen = sizeof(address); // longitud de la direccion
+    
+    // open socket
+     if ((sd_client = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+     {
+        perror("socket: ");
+     }
+    // connect to server
+    if (connect(sd_client, (struct sockaddr *)&mensaje.IP, sizeof(addrlen)) < 0)
+    {
+        perror("connect ");
+
+    }
+}
+
 void tratar_mensaje(void *mess) 
 {
-    
+    pthread_t thid;                     // id del thread
+    pthread_attr_t t_attr;
+    pthread_attr_init(&t_attr);
+	pthread_attr_setdetachstate(&t_attr, PTHREAD_CREATE_DETACHED);
+
     dprintf(2, "He llegado a tratar\n");
     struct perfil mensaje;	        //mensaje local 		
     struct respuesta respuesta;	        //respuesta a la petición          
@@ -32,7 +61,7 @@ void tratar_mensaje(void *mess)
     pthread_mutex_lock(&mutex_mensaje);
 
     //copia la petición a la variable mensaje
-   mensaje = (*(struct perfil *) mess);
+    mensaje = (*(struct perfil *) mess);
     
     //Como ya se ha copiado el mensaje, despetarmos al servidor 
     mensaje_no_copiado = false;
@@ -50,7 +79,18 @@ void tratar_mensaje(void *mess)
         resultado = unregister_gestiones(mensaje);
         
     } else if (strcmp(mensaje.c_op, "CONNECT") == 0) {
+
+        dprintf(2, "\n\nESTOY EN EL CONNECT\n\n");
+        //creamos un hilo que actúe como cliente para conectarse al puerto del cliente
+        if (pthread_create(&thid, &t_attr, (void *)connection_client, (void *)&mensaje) == 0) {
+            // se espera a que el thread copie el mensaje
+        }
+        else {
+            printf("Error: no se ha podido crear el thread connection_client.\n");
+            exit(-1);
+        }
         resultado = connect_gestiones();
+
     }
     else {
         printf("Error: código de operación no válido.\n");
@@ -134,6 +174,7 @@ int main(int argc, char *argv[]){
     dprintf(2, "SERVER\n");
 
     struct perfil perfil;
+    struct comunicacion_client comunicacion_client;
 	pthread_attr_t t_attr;		
    	pthread_t thid;
 
@@ -212,8 +253,8 @@ int main(int argc, char *argv[]){
 
 
         // Obtener la IP del cliente
-        perfil.IP = inet_ntoa(address.sin_addr);
-        printf("Client IP address: %s\n", perfil.IP);
+        comunicacion_client.IP = inet_ntoa(address.sin_addr);
+        printf("Client IP address: %s\n", comunicacion_client.IP);
 
 
 

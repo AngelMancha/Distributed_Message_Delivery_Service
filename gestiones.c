@@ -23,6 +23,9 @@ int register_gestiones(struct perfil perfil){
         return 1;
     }
 
+    perfil.status = malloc(MAXSIZE);
+    strcpy(perfil.status, "Desconectado");
+
     fichero_perfil = fopen(nombre_fichero, "wb");
 
     if (fichero_perfil != NULL) 
