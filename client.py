@@ -54,26 +54,24 @@ class client :
         
         # Enviamos la info al servidor
         try:
-            ############ ALIAS ############
-            sock.sendall(client._alias.encode("utf-8"))
-            sock.sendall(b'\0')    
-
+             ############ OP. CODE ############
+            c_op = "REGISTER"
+            sock.sendall(c_op.encode("utf-8"))
+            sock.sendall(b'\0')
+            
             ############ USERNAME ############
             sock.sendall(client._username.encode("utf-8"))
             sock.sendall(b'\0')
+            
+            ############ ALIAS ############
+            sock.sendall(client._alias.encode("utf-8"))
+            sock.sendall(b'\0')    
             
             ############ DATE ############
             sock.sendall(client._date.encode("utf-8"))
             sock.sendall(b'\0')
             
-            ############ OP. CODE ############
-            c_op = "REGISTER"
-            sock.sendall(c_op.encode("utf-8"))
-            sock.sendall(b'\0')
-            
-            ############ PORT ############
-            sock.sendall(str(client._port).encode("utf-8"))
-            sock.sendall(b'\0')
+           
             
         except socket.error as e:
                 print(f"Error al enviar los datos: {e}")
@@ -116,26 +114,15 @@ class client :
         
         # Enviamos la info al servidor
         try:
-            ############ ALIAS ############
-            sock.sendall(client._alias.encode("utf-8"))
-            sock.sendall(b'\0')    
-
-            ############ USERNAME ############
-            sock.sendall(client._username.encode("utf-8"))
-            sock.sendall(b'\0')
-            
-            ############ DATE ############
-            sock.sendall(client._date.encode("utf-8"))
-            sock.sendall(b'\0')
-            
             ############ OP. CODE ############
             c_op = "UNREGISTER"
             sock.sendall(c_op.encode("utf-8"))
             sock.sendall(b'\0')
             
-            ############ PORT ############
-            sock.sendall(str(client._port).encode("utf-8"))
-            sock.sendall(b'\0')
+            ############ ALIAS ############
+            sock.sendall(client._alias.encode("utf-8"))
+            sock.sendall(b'\0')    
+
             
             
         except socket.error as e:
@@ -180,40 +167,34 @@ class client :
         # Conectamos el socket al servidor y enviamos el número de puerto
         server_address = (client._server, client._port)
         client_socket.connect(server_address)
-        
+        # CREAR EL HILO (OBTENER PUERTO E IP)
         try: 
-            ############ ALIAS ############
-            client_socket.sendall(client._alias.encode("utf-8"))
-            client_socket.sendall(b'\0')    
-
-            ############ USERNAME ############
-            client_socket.sendall(client._username.encode("utf-8"))
-            client_socket.sendall(b'\0')
-            
-            ############ DATE ############
-            client_socket.sendall(client._date.encode("utf-8"))
-            client_socket.sendall(b'\0')
-            
-            ############ CODE ############
+            ########## CODE ############
             c_op = "CONNECT"
             client_socket.sendall(c_op.encode("utf-8"))
             client_socket.sendall(b'\0')
             
+            ############ ALIAS ############
+            client_socket.sendall(client._alias.encode("utf-8"))
+            client_socket.sendall(b'\0')
+            
             ############ PORT ############
             # (1) Busca el primer puerto libre
-            port = client_socket.getsockname()[1]
+            port = client_socket.getsockname()[1] # ESTA MAL -> socket donde escucha el servidor
             client_socket.send(str(port).encode())
+            client_socket.sendall(b'\0')
+            
 
             # (2) se llama al hilo que espera a que el servidor se conecte a ese puerto
-            connection_server_th = threading.Thread(target=client.wait_connection, args=(port, server_address))
-            connection_server_th.start()
-            connection_server_th.join()
+            # connection_server_th = threading.Thread(target=client.wait_connection, args=(port, server_address))
+            # connection_server_th.start()
+            # connection_server_th.join()
             
             
             print("Conectado al servidor en el puerto" + str(port))
         finally:
             result = int.from_bytes(client_socket.recv(4), 'big')
-            
+            print("Resultado de connect ", result)
             client_socket.close()
         # Enviamos y recibimos datos con el servidor
         # data = "Hola, servidor!"
@@ -222,9 +203,11 @@ class client :
         # print(response)
 
         # Cerramos el socket
-        client_socket.close()
-        
+        print("resultado connect: ", result)
         window['_SERVER_'].print("s> CONNECT OK")
+        
+        
+        
         #  Write your code here
         return client.RC.ERROR
 

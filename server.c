@@ -22,107 +22,29 @@ int mensaje_no_copiado;
 pthread_cond_t cond_mensaje;
 
 //función que actúa como cliente dentro del servidor para conectarse al puerto del cliente
-void connection_client(void *mess)
-{   struct comunicacion_client mensaje;
+// void connection_client(void *mess)
+// {   struct comunicacion_client mensaje;
 
-    dprintf(2, "He llegado a connection_client\n");
+//     dprintf(2, "He llegado a connection_client\n");
 
-    mensaje = (*(struct comunicacion_client *) mess);
+//     mensaje = (*(struct comunicacion_client *) mess);
 
-    struct sockaddr_in address; // direccion del servidor
-    int sd_client; // socket del cliente
-    int addrlen = sizeof(address); // longitud de la direccion
+//     struct sockaddr_in address; // direccion del servidor
+//     int sd_client; // socket del cliente
+//     int addrlen = sizeof(address); // longitud de la direccion
     
-    // open socket
-     if ((sd_client = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-     {
-        perror("socket: ");
-     }
-    // connect to server
-    if (connect(sd_client, (struct sockaddr *)&mensaje.IP, sizeof(addrlen)) < 0)
-    {
-        perror("connect ");
+//     // open socket
+//      if ((sd_client = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+//      {
+//         perror("socket: ");
+//      }
+//     // connect to server
+//     if (connect(sd_client, (struct sockaddr *)&mensaje.IP, sizeof(addrlen)) < 0)
+//     {
+//         perror("connect ");
 
-    }
-}
-
-void tratar_mensaje(void *mess) 
-{
-    pthread_t thid;                     // id del thread
-    pthread_attr_t t_attr;
-    pthread_attr_init(&t_attr);
-	pthread_attr_setdetachstate(&t_attr, PTHREAD_CREATE_DETACHED);
-
-    dprintf(2, "He llegado a tratar\n");
-    struct perfil mensaje;	        //mensaje local 		
-    struct respuesta respuesta;	        //respuesta a la petición          
-    int resultado;		                // resultado de la operación 
-
-    pthread_mutex_lock(&mutex_mensaje);
-
-    //copia la petición a la variable mensaje
-    mensaje = (*(struct perfil *) mess);
-    
-    //Como ya se ha copiado el mensaje, despetarmos al servidor 
-    mensaje_no_copiado = false;
-    pthread_cond_signal(&cond_mensaje);
-	pthread_mutex_unlock(&mutex_mensaje);
-
-
-    //leemos y ejecutamos la petición
-    
-    if (strcmp(mensaje.c_op, "REGISTER") == 0) {
-        dprintf(2, "\n\nSe ha hecho una llamada al método REGISTER\n");
-        resultado = register_gestiones(mensaje);
-        
-    } else if (strcmp(mensaje.c_op, "UNREGISTER") == 0) {
-        resultado = unregister_gestiones(mensaje);
-        
-    } else if (strcmp(mensaje.c_op, "CONNECT") == 0) {
-
-        dprintf(2, "\n\nESTOY EN EL CONNECT\n\n");
-        //creamos un hilo que actúe como cliente para conectarse al puerto del cliente
-        if (pthread_create(&thid, &t_attr, (void *)connection_client, (void *)&mensaje) == 0) {
-            // se espera a que el thread copie el mensaje
-        }
-        else {
-            printf("Error: no se ha podido crear el thread connection_client.\n");
-            exit(-1);
-        }
-        resultado = connect_gestiones();
-
-    }
-    else {
-        printf("Error: código de operación no válido.\n");
-        exit(-1);
-    }
-
-
-    
-    respuesta.code_error = resultado;
-    dprintf(2, "Respuesta: %d\n", respuesta.code_error);
-    
-    // Traducción de la respuesta a formato de red
-
-    respuesta.code_error = htonl(respuesta.code_error);
-
-    // Se envian todos los campos de la respuesta
-    if (write ( ((struct perfil *)mess)->sd_client, &respuesta.code_error, sizeof(int)) < 0)
-    {
-        perror("write: ");
-    }
-
-    else
-    {
-        printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
-    }
-    
-    close (((struct perfil *)mess)->sd_client);
-
-
-	pthread_exit(0);
-}
-
+//     }
+// }
 
 ssize_t readLine(int fd, void *buffer, size_t n)
 {
@@ -170,20 +92,198 @@ ssize_t readLine(int fd, void *buffer, size_t n)
 }
 
 
-int main(int argc, char *argv[]){
-    dprintf(2, "SERVER\n");
 
-    struct perfil perfil;
-    struct comunicacion_client comunicacion_client;
-	pthread_attr_t t_attr;		
-   	pthread_t thid;
-
-
+int recibir_msj_socket(int sd_client, struct perfil *perfil) {
+   
     char username [MAXSIZE];
     char alias [MAXSIZE];
     char date [MAXSIZE];
     char c_op[MAXSIZE];
-    char port[MAXSIZE];
+
+   
+    dprintf(2, "DESCRIPTO %d\n", sd_client);
+
+    // *********** OPERATION CODE ***********
+    if (readLine(sd_client, (char*) &c_op, MAXSIZE) < 0) {
+        perror("Error al leer la respuesta");
+        return -1;
+    }
+
+    dprintf(2, "cop: %s\n", c_op);
+
+    if (strcmp(c_op, "REGISTER")==0)
+    {
+        // *********** USERNAME ***********
+
+        if (readLine(sd_client, (char*) username, MAXSIZE) < 0) {
+            perror("Error al leer el username");
+            return -1;
+        }
+
+        dprintf(2, "username: %s\n", username);
+        
+        // ********** ALIAS ***********
+        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
+            perror("Error al leer el alias");
+            return -1;
+        }
+
+        dprintf(2, "alias: %s\n", alias);
+
+        //     *********** DATE ***********
+        // date = malloc(len_date + 1);
+        if (readLine(sd_client, (char*) date, MAXSIZE) < 0) {
+            perror("Error al leer la fecha");
+            return -1;
+        }
+
+        dprintf(2, "date: %s\n", date);
+
+         // Reserva de memoria
+        perfil->nombre = malloc(MAXSIZE);
+        perfil->alias = malloc(MAXSIZE);
+        perfil->fecha = malloc(MAXSIZE);
+        perfil->c_op = malloc(MAXSIZE);
+
+        //se rellena la estructura de la petición
+        strcpy(perfil->nombre, username);
+        strcpy(perfil->alias, alias);
+
+        strcpy(perfil->fecha, date);
+
+        strcpy(perfil->c_op, c_op);
+    
+    } else if (strcmp(c_op, "UNREGISTER")==0) {
+        // ********** ALIAS ***********
+        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
+            perror("Error al leer el alias");
+            return -1;
+        }
+        perfil->alias = malloc(MAXSIZE);
+        perfil->c_op = malloc(MAXSIZE);
+
+        strcpy(perfil->c_op, c_op);
+        strcpy(perfil->alias, alias);
+
+    } else if (strcmp(c_op, "CONNECT")==0) {
+        char port[MAXSIZE];
+        // ********** ALIAS ***********
+        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
+            perror("Error al leer el alias");
+            return -1;
+        }
+        if (readLine(sd_client, (char*) port, MAXSIZE) < 0) {
+            perror("Error al leer el alias");
+            return -1;
+        }
+
+        int port_perfil = atoi(port);
+
+        perfil->alias = malloc(MAXSIZE);
+        perfil->c_op = malloc(MAXSIZE);
+
+        strcpy(perfil->c_op, c_op);
+        strcpy(perfil->alias, alias);
+
+        perfil->port = port_perfil;
+    }
+
+
+    return 0;
+}
+
+void tratar_mensaje(void *sd_client_tratar) 
+{   
+    
+    dprintf(2, "He llegado a tratar\n");
+    //struct perfil mensaje;	                    //mensaje local 		
+    struct respuesta respuesta;	                //respuesta a la petición          
+    int resultado;		                        // resultado de la operación 
+    int sd_client;
+
+    
+    
+    struct perfil perfil;
+    
+
+    pthread_mutex_lock(&mutex_mensaje);
+
+    sd_client = (* (int *) sd_client_tratar);
+    
+    
+    //Como ya se ha copiado el mensaje, despetarmos al servidor 
+    mensaje_no_copiado = false;
+    pthread_cond_signal(&cond_mensaje);
+	pthread_mutex_unlock(&mutex_mensaje);
+
+    resultado = recibir_msj_socket(sd_client, &perfil);
+
+    //leemos y ejecutamos la petición
+     dprintf(2, "cop: %s\n", perfil.c_op);
+
+    if (strcmp(perfil.c_op, "REGISTER") == 0) {
+        dprintf(2, "\n\nSe ha hecho una llamada al método REGISTER\n");
+        perfil.status = "Desconectado";
+        perfil.port = 0;
+        resultado = register_gestiones(perfil);
+        
+    } else if (strcmp(perfil.c_op, "UNREGISTER") == 0) {
+        resultado = unregister_gestiones(perfil);
+        
+    } else if (strcmp(perfil.c_op, "CONNECT") == 0) {
+
+        dprintf(2, "\n\nESTOY EN EL CONNECT\n\n");
+
+        // //creamos un hilo que actúe como cliente para conectarse al puerto del cliente
+        // if (pthread_create(&thid, &t_attr, (void *)connection_client, (void *)&mensaje) == 0) {
+        //     // se espera a que el thread copie el mensaje
+        // }
+        // else {
+        //     printf("Error: no se ha podido crear el thread connection_client.\n");
+        //     exit(-1);
+        // }
+        dprintf(2, "USERNAME EN CONNECT ES %s\n", perfil.nombre);
+        resultado = connect_gestiones(perfil);
+
+    }
+    else {
+        printf("Error: código de operación no válido.\n");
+        exit(-1);
+    }
+
+
+    
+    respuesta.code_error = resultado;
+    dprintf(2, "Respuesta: %d\n", respuesta.code_error);
+    
+    // Traducción de la respuesta a formato de red
+
+    respuesta.code_error = htonl(respuesta.code_error);
+
+    // Se envian todos los campos de la respuesta
+    if (write (sd_client, &respuesta.code_error, sizeof(int)) < 0)
+    {
+        perror("write: ");
+    }
+
+    else
+    {
+        printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
+    }
+    
+    close (sd_client);
+
+
+	pthread_exit(0);
+}
+
+
+
+int main(int argc, char *argv[]){
+    dprintf(2, "SERVER\n");
+
+	pthread_attr_t t_attr;		
+   	pthread_t thid;
 
 
     struct sockaddr_in address; // direccion del servidor
@@ -252,91 +352,8 @@ int main(int argc, char *argv[]){
         }
 
 
-        // Obtener la IP del cliente
-        comunicacion_client.IP = inet_ntoa(address.sin_addr);
-        printf("Client IP address: %s\n", comunicacion_client.IP);
-
-
-
-        // Se reciben todos los campos de la petición del cliente
-        
-        // ********** ALIAS ***********
-        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
-            perror("Error al leer el alias");
-            return -1;
-        }
-
-        dprintf(2, "alias: %s\n", alias);
-
-
-    //     // *********** USERNAME ***********
-
-      if (readLine(sd_client, (char*) username, MAXSIZE) < 0) {
-           perror("Error al leer el username");
-           return -1;
-        }
-
-        dprintf(2, "username: %s\n", username);
-    
-
-
-    //     *********** DATE ***********
-        // date = malloc(len_date + 1);
-        if (readLine(sd_client, (char*) date, MAXSIZE) < 0) {
-            perror("Error al leer la fecha");
-            return -1;
-        }
-
-        dprintf(2, "date: %s\n", date);
-        
-
-
-
-    // *********** OPERATION CODE ***********
-        if (readLine(sd_client, (char*) &c_op, MAXSIZE) < 0) {
-            perror("Error al leer la respuesta");
-            return -1;
-        }
-
-        dprintf(2, "cop: %s\n", c_op);
-
-
-    // *********** USER PORT **************
-        if (readLine(sd_client, (char*) &port, MAXSIZE) < 0) {
-            perror("Error al leer la respuesta");
-            return -1;
-        }
-
-        dprintf(2, "PORT: %s\n", port);
-        
-        
-
-        dprintf(2, "SECOND TRY: %s\n", port);
-        
-
-        // Reserva de memoria
-        perfil.nombre = malloc(MAXSIZE);
-        perfil.alias = malloc(MAXSIZE);
-        perfil.fecha = malloc(MAXSIZE);
-        perfil.c_op = malloc(MAXSIZE);
-
-        //se rellena la estructura de la petición
-        strcpy(perfil.nombre, username);
-
-        strcpy(perfil.alias, alias);
-
-
-        strcpy(perfil.fecha, date);
-
-        strcpy(perfil.c_op, c_op);
-
-        perfil.port = (int) strtol(port, NULL, MAXSIZE);
-
-        perfil.sd_client = sd_client;
-
-
         dprintf(2, "Hola he llegado aqui 2\n");
-        if (pthread_create(&thid, &t_attr, (void *)tratar_mensaje, (void *)&perfil) == 0) {
+        if (pthread_create(&thid, &t_attr, (void *)tratar_mensaje, (void *)&sd_client) == 0) {
             // se espera a que el thread copie el mensaje 
 			pthread_mutex_lock(&mutex_mensaje);
 			while (mensaje_no_copiado)

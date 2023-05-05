@@ -71,9 +71,48 @@ int unregister_gestiones(struct perfil perfil)
 }
 
 
-int connect_gestiones() 
+int connect_gestiones(struct perfil perfil) 
 {
     
-    printf("Hola mundo\n");
+    //Esta función modifica el fichero que representa la clave key con los nuevos valores
+
+    char str_key[20];
+    char nombre_fichero[50];
+    //struct tupla_pet pet;
+
+    sprintf(str_key, "%s", perfil.alias);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, str_key, formato_fichero);
+
+    // Comprobamos la existencia de la clave
+    if (access(nombre_fichero, F_OK) != 0) 
+    {
+        perror("modify_value(): El usuario no existe");
+        return -1;
+    }
+
+    FILE *archivo = fopen(nombre_fichero, "r+b");
+    
+    if (archivo == NULL) 
+    {
+        perror("Modify_value_impl(): Error al abrir el archivo\n");
+        return -1;
+    }
+
+    // Mover el puntero de posición al inicio del archivo
+    fseek(archivo, 0, SEEK_SET);
+
+    // Leer el registro original
+    struct perfil perfil_original;
+    fread(&perfil_original, sizeof(struct perfil), 1, archivo);
+
+    // Mover el puntero de posición al inicio del archivo
+    fseek(archivo, 0, SEEK_SET);
+
+    // Escribir el nuevo registro
+    fwrite(&perfil, sizeof(struct perfil), 1, archivo);
+
+    fclose(archivo);
+
+
     return 0;
 }

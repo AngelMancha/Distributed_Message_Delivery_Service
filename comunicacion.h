@@ -20,8 +20,8 @@ struct respuesta {
 };
 
 
-struct comunicacion_client{
-    char *IP;
-    int port;
-};
+// struct comunicacion_client{
+//     char *IP;
+//     int port;
+// };
 #endif

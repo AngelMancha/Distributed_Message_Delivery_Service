@@ -4,4 +4,4 @@
 
 int register_gestiones(struct perfil perfil);
 int unregister_gestiones(struct perfil perfil);
-int connect_gestiones();
+int connect_gestiones(struct perfil perfil);
