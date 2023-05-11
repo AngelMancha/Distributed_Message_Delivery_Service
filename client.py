@@ -159,17 +159,16 @@ class client :
     def  connect(user, window):
         c_op = "CONNECT"
         
-        # (1) Buscamos el primer puerto libre
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("localhost", 0))
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(("0.0.0.0", 0))
+            
             port = s.getsockname()[1]
-        
-        # (2) Creamos el hilo 
+            s.listen()
 
-        connection_server_th = threading.Thread(target=client.connection_server_th, args=(port, client._server))
-        connection_server_th.start()
-        connection_server_th.join()
+            # (2) Creamos el hilo 
+            connection_server_th = threading.Thread(target=client.connection_server_th, args=(port, s))
+            connection_server_th.start()
             
         # Creamos un objeto de socket
         client_socket = socket.socket()
@@ -206,6 +205,21 @@ class client :
             result = int.from_bytes(client_socket.recv(4), 'big')
             print("Resultado de connect ", result)
             client_socket.close()
+
+            # Comprobamos los results
+            if result == 0:
+                window['_SERVER_'].print("s> CONNECT OK")
+                return client.RC.OK
+            if result == 1:
+                window['_SERVER_'].print("s> CONNECT FAIL, USER DOES NOT EXIST")
+                return client.RC.USER_ERROR
+            if result == 2:
+                window['_SERVER_'].print("s> USER ALREADY CONNECTED")
+                return client.RC.USER_ERROR
+            if result == 3:
+                window['_SERVER_'].print("s> CONNECT FAIL")
+                return client.RC.ERROR 
+            
         # Enviamos y recibimos datos con el servidor
         # data = "Hola, servidor!"
         # client_socket.sendall(data.encode())
@@ -272,21 +286,13 @@ class client :
 
 
     @staticmethod
-    def connection_server_th(port: int, ip: str):
-        # create socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
-        # connect to server
-        server_address = (ip, port)
-        sock.connect(server_address)
-        print(f"Connected to {server_address}")
-        
+    def connection_server_th(port: int, sock):
         # Escucha a los mensajes que puede enviar el servidor
         while True:
             # Aceptar la conexión
             connection, client_address = sock.accept()
             try:
-                print(f"Connection from {client_address}")
+                print(f"Connection from {connection.getpeername()}")
                 
                 # Recibir el mensaje
                 data = connection.recv(1024)

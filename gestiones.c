@@ -87,29 +87,34 @@ int connect_gestiones(struct perfil perfil)
     if (access(nombre_fichero, F_OK) != 0) 
     {
         perror("modify_value(): El usuario no existe");
-        return -1;
+        return 1;
     }
+
 
     FILE *archivo = fopen(nombre_fichero, "r+b");
     
     if (archivo == NULL) 
     {
         perror("Modify_value_impl(): Error al abrir el archivo\n");
-        return -1;
+        return 3;
     }
 
     // Mover el puntero de posición al inicio del archivo
     fseek(archivo, 0, SEEK_SET);
 
     // Leer el registro original
-    struct perfil perfil_original;
-    fread(&perfil_original, sizeof(struct perfil), 1, archivo);
+    struct perfil perfil_antiguo;
+    fread(&perfil_antiguo, sizeof(struct perfil), 1, archivo);
 
+    if (strcmp(perfil_antiguo.status, "Conectado") == 0){
+        perror("El usuario ya está conectado");
+        return 2;
+    }
     //modificar el registro 
-    perfil.sd_client = perfil_original.sd_client;
-    perfil.nombre = perfil_original.nombre;
-    perfil.fecha = perfil_original.fecha;
-    perfil.c_op = perfil_original.c_op;
+    perfil.sd_client = perfil_antiguo.sd_client;
+    perfil.nombre = perfil_antiguo.nombre;
+    perfil.fecha = perfil_antiguo.fecha;
+    perfil.c_op = perfil_antiguo.c_op;
     perfil.status = "Conectado";
 
 

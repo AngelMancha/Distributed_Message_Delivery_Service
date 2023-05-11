@@ -217,22 +217,14 @@ void tratar_mensaje(void *sd_client_tratar)
         perfil.port = 0;
         resultado = register_gestiones(perfil);
         
+    
     } else if (strcmp(perfil.c_op, "UNREGISTER") == 0) {
         resultado = unregister_gestiones(perfil);
         
     } else if (strcmp(perfil.c_op, "CONNECT") == 0) {
-        // //creamos un hilo que actúe como cliente para conectarse al puerto del cliente
-        // if (pthread_create(&thid, &t_attr, (void *)connection_client, (void *)&mensaje) == 0) {
-        //     // se espera a que el thread copie el mensaje
-        // }
-        // else {
-        //     printf("Error: no se ha podido crear el thread connection_client.\n");
-        //     exit(-1);
-        // }
+
         dprintf(2, "USERNAME EN CONNECT ES %s\n", perfil.nombre);
         resultado = connect_gestiones(perfil);
-
-        
         dprintf(2, "RESULTADO EN CONNECT ES %d\n", resultado);
 
     }
