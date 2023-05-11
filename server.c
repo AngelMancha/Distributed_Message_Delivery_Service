@@ -16,35 +16,15 @@
 #define MAXSIZE 1024
 
 
+struct sockaddr_in address_thread; // direccion IP y Puerto Hilo
+socklen_t addrlen_thread = sizeof(address_thread);
+
 //mutex
 pthread_mutex_t mutex_mensaje;
 int mensaje_no_copiado;
 pthread_cond_t cond_mensaje;
 
-//función que actúa como cliente dentro del servidor para conectarse al puerto del cliente
-// void connection_client(void *mess)
-// {   struct comunicacion_client mensaje;
 
-//     dprintf(2, "He llegado a connection_client\n");
-
-//     mensaje = (*(struct comunicacion_client *) mess);
-
-//     struct sockaddr_in address; // direccion del servidor
-//     int sd_client; // socket del cliente
-//     int addrlen = sizeof(address); // longitud de la direccion
-    
-//     // open socket
-//      if ((sd_client = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-//      {
-//         perror("socket: ");
-//      }
-//     // connect to server
-//     if (connect(sd_client, (struct sockaddr *)&mensaje.IP, sizeof(addrlen)) < 0)
-//     {
-//         perror("connect ");
-
-//     }
-// }
 
 ssize_t readLine(int fd, void *buffer, size_t n)
 {
@@ -144,13 +124,12 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
         perfil->alias = malloc(MAXSIZE);
         perfil->fecha = malloc(MAXSIZE);
         perfil->c_op = malloc(MAXSIZE);
+        
 
         //se rellena la estructura de la petición
         strcpy(perfil->nombre, username);
         strcpy(perfil->alias, alias);
-
         strcpy(perfil->fecha, date);
-
         strcpy(perfil->c_op, c_op);
     
     } else if (strcmp(c_op, "UNREGISTER")==0) {
@@ -166,26 +145,37 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
         strcpy(perfil->alias, alias);
 
     } else if (strcmp(c_op, "CONNECT")==0) {
+
         char port[MAXSIZE];
+
+        getpeername(sd_client, (struct sockaddr *)&address_thread, &addrlen_thread);
+       // getpeername(sockfd, (struct sockaddr *)&addr, &len);
+
+
+        char ipstr[INET_ADDRSTRLEN]; // pasar la ip a un formato legible
+
+        inet_ntop(AF_INET, &(address_thread.sin_addr), ipstr, INET_ADDRSTRLEN);
+
         // ********** ALIAS ***********
         if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
             perror("Error al leer el alias");
             return -1;
         }
         if (readLine(sd_client, (char*) port, MAXSIZE) < 0) {
-            perror("Error al leer el alias");
+            perror("Error al leer el sd_client");
             return -1;
         }
 
-        int port_perfil = atoi(port);
+        //int port_perfil = ntohs(address_thread.sin_port);
 
         perfil->alias = malloc(MAXSIZE);
         perfil->c_op = malloc(MAXSIZE);
+        perfil->IP = malloc(MAXSIZE);
 
         strcpy(perfil->c_op, c_op);
         strcpy(perfil->alias, alias);
-
-        perfil->port = port_perfil;
+        perfil->port = atoi(port);
+        strcpy(perfil->IP, ipstr);
     }
 
 
@@ -231,9 +221,6 @@ void tratar_mensaje(void *sd_client_tratar)
         resultado = unregister_gestiones(perfil);
         
     } else if (strcmp(perfil.c_op, "CONNECT") == 0) {
-
-        dprintf(2, "\n\nESTOY EN EL CONNECT\n\n");
-
         // //creamos un hilo que actúe como cliente para conectarse al puerto del cliente
         // if (pthread_create(&thid, &t_attr, (void *)connection_client, (void *)&mensaje) == 0) {
         //     // se espera a que el thread copie el mensaje
@@ -244,6 +231,9 @@ void tratar_mensaje(void *sd_client_tratar)
         // }
         dprintf(2, "USERNAME EN CONNECT ES %s\n", perfil.nombre);
         resultado = connect_gestiones(perfil);
+
+        
+        dprintf(2, "RESULTADO EN CONNECT ES %d\n", resultado);
 
     }
     else {
@@ -350,7 +340,6 @@ int main(int argc, char *argv[]){
             perror("accept");
             return -1;
         }
-
 
         dprintf(2, "Hola he llegado aqui 2\n");
         if (pthread_create(&thid, &t_attr, (void *)tratar_mensaje, (void *)&sd_client) == 0) {

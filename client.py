@@ -158,15 +158,30 @@ class client :
     @staticmethod
     def  connect(user, window):
         c_op = "CONNECT"
+        
+        # (1) Buscamos el primer puerto libre
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("localhost", 0))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            port = s.getsockname()[1]
+        
+        # (2) Creamos el hilo 
+
+        connection_server_th = threading.Thread(target=client.connection_server_th, args=(port, client._server))
+        connection_server_th.start()
+        connection_server_th.join()
+            
         # Creamos un objeto de socket
         client_socket = socket.socket()
 
         # Enlazamos el socket a una dirección IP y puerto libres seleccionados por el sistema operativo
-        client_socket.bind(('localhost', 0))
+    
 
         # Conectamos el socket al servidor y enviamos el número de puerto
         server_address = (client._server, client._port)
         client_socket.connect(server_address)
+        
+        
         # CREAR EL HILO (OBTENER PUERTO E IP)
         try: 
             ########## CODE ############
@@ -184,14 +199,9 @@ class client :
             client_socket.send(str(port).encode())
             client_socket.sendall(b'\0')
             
-
-            # (2) se llama al hilo que espera a que el servidor se conecte a ese puerto
-            # connection_server_th = threading.Thread(target=client.wait_connection, args=(port, server_address))
-            # connection_server_th.start()
-            # connection_server_th.join()
             
-            
-            print("Conectado al servidor en el puerto" + str(port))
+            print("El puerto donde se va hacer la escucha " + str(port))
+            print("La direccion del servidor " + str(server_address.__getitem__(0)))
         finally:
             result = int.from_bytes(client_socket.recv(4), 'big')
             print("Resultado de connect ", result)
@@ -263,24 +273,28 @@ class client :
 
     @staticmethod
     def connection_server_th(port: int, ip: str):
-        # Crea un objeto socket
-        mi_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        # Enlaza el socket a la dirección y puerto especificados
-        mi_socket.bind((ip, port))
-
-        # Comienza a escuchar conexiones entrantes
-        mi_socket.listen()
-
-        # Acepta una conexión entrante y crea un nuevo socket para comunicarnos con el cliente
-        conexion, direccion_cliente = mi_socket.accept()
-
-        # Realiza cualquier operación que necesites con el socket de la conexión aquí
-        # ...
-
-        # Cierra la conexión y el socket
-        conexion.close()
-        mi_socket.close()
+        # create socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+        # connect to server
+        server_address = (ip, port)
+        sock.connect(server_address)
+        print(f"Connected to {server_address}")
+        
+        # Escucha a los mensajes que puede enviar el servidor
+        while True:
+            # Aceptar la conexión
+            connection, client_address = sock.accept()
+            try:
+                print(f"Connection from {client_address}")
+                
+                # Recibir el mensaje
+                data = connection.recv(1024)
+                print(f"Received message: {data.decode('utf-8')}")
+                
+            finally:
+                # close the connection
+                connection.close()
     
 
 

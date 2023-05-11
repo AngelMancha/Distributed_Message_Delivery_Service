@@ -73,7 +73,7 @@ int unregister_gestiones(struct perfil perfil)
 
 int connect_gestiones(struct perfil perfil) 
 {
-    
+    dprintf(2, "LLEGO AQUIIIIIIIIIIIII\n");
     //Esta función modifica el fichero que representa la clave key con los nuevos valores
 
     char str_key[20];
@@ -105,6 +105,23 @@ int connect_gestiones(struct perfil perfil)
     struct perfil perfil_original;
     fread(&perfil_original, sizeof(struct perfil), 1, archivo);
 
+    //modificar el registro 
+    perfil.sd_client = perfil_original.sd_client;
+    perfil.nombre = perfil_original.nombre;
+    perfil.fecha = perfil_original.fecha;
+    perfil.c_op = perfil_original.c_op;
+    perfil.status = "Conectado";
+
+
+
+    dprintf(2, "perfil_original.status: %s\n", perfil.status);
+    dprintf(2, "perfil.alias: %s\n", perfil.alias);
+    dprintf(2, "perfil.nombre: %s\n", perfil.nombre);
+    dprintf(2, "perfil.fecha: %s\n", perfil.fecha);
+    dprintf(2, "perfil.c_op: %s\n", perfil.c_op);
+    dprintf(2, "perfil.status: %s\n", perfil.status);
+    dprintf(2, "perfil.IP: %s\n", perfil.IP);
+    dprintf(2, "perfil.port: %d\n", perfil.port);
     // Mover el puntero de posición al inicio del archivo
     fseek(archivo, 0, SEEK_SET);
 
