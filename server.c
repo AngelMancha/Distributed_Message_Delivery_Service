@@ -161,6 +161,7 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
             perror("Error al leer el alias");
             return -1;
         }
+        // ********** PUERTO ***********
         if (readLine(sd_client, (char*) port, MAXSIZE) < 0) {
             perror("Error al leer el sd_client");
             return -1;
@@ -178,6 +179,20 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
         strcpy(perfil->IP, ipstr);
     }
 
+    else if (strcmp(c_op, "DISCONNECT")==0){
+
+         // ********** ALIAS ***********
+        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
+            perror("Error al leer el sd_client");
+            return -1;
+        }
+
+        perfil->alias = malloc(MAXSIZE);
+        perfil->c_op = malloc(MAXSIZE);
+
+        strcpy(perfil->c_op, c_op);
+        strcpy(perfil->alias, alias);
+    }
 
     return 0;
 }
@@ -222,11 +237,10 @@ void tratar_mensaje(void *sd_client_tratar)
         resultado = unregister_gestiones(perfil);
         
     } else if (strcmp(perfil.c_op, "CONNECT") == 0) {
-
-        dprintf(2, "USERNAME EN CONNECT ES %s\n", perfil.nombre);
         resultado = connect_gestiones(perfil);
-        dprintf(2, "RESULTADO EN CONNECT ES %d\n", resultado);
 
+    }else if (strcmp(perfil.c_op, "DISCONNECT")==0){
+        resultado = disconnect_gestiones(perfil);
     }
     else {
         printf("Error: código de operación no válido.\n");

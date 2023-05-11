@@ -73,9 +73,7 @@ int unregister_gestiones(struct perfil perfil)
 
 int connect_gestiones(struct perfil perfil) 
 {
-    dprintf(2, "LLEGO AQUIIIIIIIIIIIII\n");
     //Esta función modifica el fichero que representa la clave key con los nuevos valores
-
     char str_key[20];
     char nombre_fichero[50];
     //struct tupla_pet pet;
@@ -116,6 +114,73 @@ int connect_gestiones(struct perfil perfil)
     perfil.fecha = perfil_antiguo.fecha;
     perfil.c_op = perfil_antiguo.c_op;
     perfil.status = "Conectado";
+
+
+
+    dprintf(2, "perfil_original.status: %s\n", perfil.status);
+    dprintf(2, "perfil.alias: %s\n", perfil.alias);
+    dprintf(2, "perfil.nombre: %s\n", perfil.nombre);
+    dprintf(2, "perfil.fecha: %s\n", perfil.fecha);
+    dprintf(2, "perfil.c_op: %s\n", perfil.c_op);
+    dprintf(2, "perfil.status: %s\n", perfil.status);
+    dprintf(2, "perfil.IP: %s\n", perfil.IP);
+    dprintf(2, "perfil.port: %d\n", perfil.port);
+    // Mover el puntero de posición al inicio del archivo
+    fseek(archivo, 0, SEEK_SET);
+
+    // Escribir el nuevo registro
+    fwrite(&perfil, sizeof(struct perfil), 1, archivo);
+
+    fclose(archivo);
+
+
+    return 0;
+}
+
+
+int disconnect_gestiones(struct perfil perfil) 
+{
+    //Esta función modifica el fichero que representa la clave key con los nuevos valores
+    char str_key[20];
+    char nombre_fichero[50];
+    //struct tupla_pet pet;
+
+    sprintf(str_key, "%s", perfil.alias);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, str_key, formato_fichero);
+
+    // Comprobamos la existencia de la clave
+    if (access(nombre_fichero, F_OK) != 0) 
+    {
+        perror("modify_value(): El usuario no existe");
+        return 1;
+    }
+
+
+    FILE *archivo = fopen(nombre_fichero, "r+b");
+    
+    if (archivo == NULL) 
+    {
+        perror("Modify_value_impl(): Error al abrir el archivo\n");
+        return 3;
+    }
+
+    // Mover el puntero de posición al inicio del archivo
+    fseek(archivo, 0, SEEK_SET);
+
+    // Leer el registro original
+    struct perfil perfil_antiguo;
+    fread(&perfil_antiguo, sizeof(struct perfil), 1, archivo);
+
+    if (strcmp(perfil_antiguo.status, "Desconectado") == 0){
+        perror("El usuario no está conectado");
+        return 2;
+    }
+    //modificar el registro 
+    perfil.sd_client = perfil_antiguo.sd_client;
+    perfil.nombre = perfil_antiguo.nombre;
+    perfil.fecha = perfil_antiguo.fecha;
+    perfil.c_op = perfil_antiguo.c_op;
+    perfil.status = "Desconectado";
 
 
 

@@ -26,6 +26,7 @@ class client :
     _username: str = None
     _alias: str = None
     _date: str = None
+    _keep_running = None
 
     # ******************** METHODS *******************
     # *
@@ -71,8 +72,6 @@ class client :
             sock.sendall(client._date.encode("utf-8"))
             sock.sendall(b'\0')
             
-           
-            
         except socket.error as e:
                 print(f"Error al enviar los datos: {e}")
         finally:
@@ -91,8 +90,11 @@ class client :
             return client.RC.USER_ERROR
         if result == 2:
             window['_SERVER_'].print("s> REGISTER FAIL")
-            return client.RC.ERROR
-
+            return client.RC.ERROR 
+            
+        return client.RC.ERROR
+    
+    
     # *
     # 	 * @param user - User name to unregister from the system
     # 	 *
@@ -101,9 +103,7 @@ class client :
     # 	 * @return ERROR if another error occurred
     @staticmethod
     def  unregister(user, window):
-        c_op = 0
         # sockets para conectar con servidor
-
         # Creamos el socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -144,6 +144,8 @@ class client :
         if result == 2:
             window['_SERVER_'].print("s> UNREGISTER FAIL")
             return client.RC.ERROR
+        return client.RC.ERROR 
+    
         
         
         
@@ -167,21 +169,17 @@ class client :
             s.listen()
 
             # (2) Creamos el hilo 
+            client._keep_running = True
             connection_server_th = threading.Thread(target=client.connection_server_th, args=(port, s))
             connection_server_th.start()
             
         # Creamos un objeto de socket
         client_socket = socket.socket()
 
-        # Enlazamos el socket a una dirección IP y puerto libres seleccionados por el sistema operativo
-    
-
         # Conectamos el socket al servidor y enviamos el número de puerto
         server_address = (client._server, client._port)
         client_socket.connect(server_address)
         
-        
-        # CREAR EL HILO (OBTENER PUERTO E IP)
         try: 
             ########## CODE ############
             c_op = "CONNECT"
@@ -206,34 +204,21 @@ class client :
             print("Resultado de connect ", result)
             client_socket.close()
 
-            # Comprobamos los results
-            if result == 0:
-                window['_SERVER_'].print("s> CONNECT OK")
-                return client.RC.OK
-            if result == 1:
-                window['_SERVER_'].print("s> CONNECT FAIL, USER DOES NOT EXIST")
-                return client.RC.USER_ERROR
-            if result == 2:
-                window['_SERVER_'].print("s> USER ALREADY CONNECTED")
-                return client.RC.USER_ERROR
-            if result == 3:
-                window['_SERVER_'].print("s> CONNECT FAIL")
-                return client.RC.ERROR 
-            
-        # Enviamos y recibimos datos con el servidor
-        # data = "Hola, servidor!"
-        # client_socket.sendall(data.encode())
-        # response = client_socket.recv(1024).decode()
-        # print(response)
+        # Comprobamos los results
+        if result == 0:
+            window['_SERVER_'].print("s> CONNECT OK")
+            return client.RC.OK
+        if result == 1:
+            window['_SERVER_'].print("s> CONNECT FAIL, USER DOES NOT EXIST")
+            return client.RC.USER_ERROR
+        if result == 2:
+            window['_SERVER_'].print("s> USER ALREADY CONNECTED")
+            return client.RC.USER_ERROR
+        if result == 3:
+            window['_SERVER_'].print("s> CONNECT FAIL")
+            return client.RC.ERROR 
+        return client.RC.ERROR 
 
-        # Cerramos el socket
-        print("resultado connect: ", result)
-        window['_SERVER_'].print("s> CONNECT OK")
-        
-        
-        
-        #  Write your code here
-        return client.RC.ERROR
 
 
     # *
@@ -244,9 +229,50 @@ class client :
     # * @return ERROR if another error occurred
     @staticmethod
     def  disconnect(user, window):
-        window['_SERVER_'].print("s> DISCONNECT OK")
-        #  Write your code here
-        return client.RC.ERROR
+        c_op = "DISCONNECT"
+        
+        # Creamos el socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Nos conectamos al servidor a través de los argumentos
+        server_address = (client._server, client._port)
+        print('connecting to {} port {}'.format(*server_address))
+        sock.connect(server_address)
+        
+        # Enviamos la info al servidor
+        try:
+            ############ OP. CODE ############
+            sock.sendall(c_op.encode("utf-8"))
+            sock.sendall(b'\0')
+            
+            ############ ALIAS ############
+            sock.sendall(user.encode("utf-8"))
+            sock.sendall(b'\0')    
+
+        except socket.error as e:
+                print(f"Error al enviar los datos: {e}")
+        finally:
+            result = int.from_bytes(sock.recv(4), 'big')
+            
+            sock.close()
+        
+        # Comprobamos los results
+        if result == 0:
+            client._keep_running = False # detenemos la ejecución del hilo
+            window['_SERVER_'].print("s> DISCONNECT OK")
+            return client.RC.OK
+        if result == 1:
+            window['_SERVER_'].print("s> DISCONNECT FAIL / USER DOES NOT EXIST")
+            return client.RC.USER_ERROR
+        if result == 2:
+            window['_SERVER_'].print("s> DISCONNECT FAIL / USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+        if result == 3:
+            window['_SERVER_'].print("s> CONNECT FAIL")
+            return client.RC.ERROR 
+        return client.RC.ERROR 
+    
+        
 
     # *
     # * @param user    - Receiver user name
@@ -288,7 +314,7 @@ class client :
     @staticmethod
     def connection_server_th(port: int, sock):
         # Escucha a los mensajes que puede enviar el servidor
-        while True:
+        while client._keep_running:
             # Aceptar la conexión
             connection, client_address = sock.accept()
             try:
@@ -332,9 +358,6 @@ class client :
                 client._username = values['_REGISTERNAME_']
                 client._alias = values['_REGISTERALIAS_']
                 client._date = values['_REGISTERDATE_']
-                
-                
-                
                 
                 break
         window.Close()
