@@ -12,6 +12,7 @@ struct perfil {
     char * status;
     char *IP;
     int port;
+    struct mensaje *mensajes;
 };
 
 
@@ -19,9 +20,12 @@ struct respuesta {
     int code_error;
 };
 
+struct mensaje{
+    char *mensaje;
+    unsigned int id;
+    char *remitente;
+};
 
-// struct comunicacion_client{
-//     char *IP;
-//     int port;
-// };
+
+
 #endif

@@ -32,8 +32,6 @@ ssize_t readLine(int fd, void *buffer, size_t n)
 	size_t totRead;	  /* total bytes read so far */
 	char *buf;
 	char ch;
-
-
 	if (n <= 0 || buffer == NULL) { 
 		errno = EINVAL;
 		return -1; 
@@ -44,7 +42,6 @@ ssize_t readLine(int fd, void *buffer, size_t n)
 	
 	for (;;) {
         	numRead = read(fd, &ch, 1);	/* read a byte */
-
         	if (numRead == -1) {	
             		if (errno == EINTR)	/* interrupted -> restart read() */
                 		continue;
@@ -66,22 +63,18 @@ ssize_t readLine(int fd, void *buffer, size_t n)
 			}
 		} 
 	}
-	
 	*buf = '\0';
     	return totRead;
 }
 
 
 
-int recibir_msj_socket(int sd_client, struct perfil *perfil) {
+int recibir_msj_socket(int sd_client, struct perfil *perfil, char **alias_dest, char **message) {
    
     char username [MAXSIZE];
     char alias [MAXSIZE];
     char date [MAXSIZE];
     char c_op[MAXSIZE];
-
-   
-    dprintf(2, "DESCRIPTO %d\n", sd_client);
 
     // *********** OPERATION CODE ***********
     if (readLine(sd_client, (char*) &c_op, MAXSIZE) < 0) {
@@ -91,6 +84,9 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
 
     dprintf(2, "cop: %s\n", c_op);
 
+    // **************************************
+    // ************** REGISTER **************
+    // **************************************
     if (strcmp(c_op, "REGISTER")==0)
     {
         // *********** USERNAME ***********
@@ -132,6 +128,9 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
         strcpy(perfil->fecha, date);
         strcpy(perfil->c_op, c_op);
     
+    // **************************************
+    // ************* UNREGISTER *************
+    // **************************************
     } else if (strcmp(c_op, "UNREGISTER")==0) {
         // ********** ALIAS ***********
         if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
@@ -144,6 +143,9 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
         strcpy(perfil->c_op, c_op);
         strcpy(perfil->alias, alias);
 
+    // **************************************
+    // ************** CONNECT **************
+    // **************************************
     } else if (strcmp(c_op, "CONNECT")==0) {
 
         char port[MAXSIZE];
@@ -166,9 +168,8 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
             perror("Error al leer el sd_client");
             return -1;
         }
-
-        //int port_perfil = ntohs(address_thread.sin_port);
-
+        
+        // Reserva de memoria
         perfil->alias = malloc(MAXSIZE);
         perfil->c_op = malloc(MAXSIZE);
         perfil->IP = malloc(MAXSIZE);
@@ -177,9 +178,11 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
         strcpy(perfil->alias, alias);
         perfil->port = atoi(port);
         strcpy(perfil->IP, ipstr);
-    }
 
-    else if (strcmp(c_op, "DISCONNECT")==0){
+    // **************************************
+    // ************** DISCONNECT ************
+    // **************************************
+    } else if (strcmp(c_op, "DISCONNECT")==0){
 
          // ********** ALIAS ***********
         if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
@@ -192,7 +195,48 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil) {
 
         strcpy(perfil->c_op, c_op);
         strcpy(perfil->alias, alias);
-    }
+
+    // **************************************
+    // ************** SEND **************
+    // **************************************
+    } else if (strcmp(c_op, "SEND") == 0) { 
+
+        // ********** ALIAS USER ***********
+        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
+            perror("Error al leer el sd_client");
+            return -1;
+        }
+
+        // ********** ALIAS DEST ***********
+        if (*alias_dest && readLine(sd_client, (char*) *alias_dest, MAXSIZE) < 0) {
+            perror("Error al leer el sd_client");
+            return -1;
+        }
+        if (!*alias_dest || **alias_dest == '\0') {
+            fprintf(stderr, "Error: alias_dest vacío\n");
+            return -1;
+        }
+
+        // ********** MESSAGE ***********
+        if (*message && readLine(sd_client, (char*) *message, MAXSIZE) < 0) {
+            perror("Error al leer el sd_client");
+            return -1;
+        }
+        if (!*message || **message == '\0') {
+            fprintf(stderr, "Error: mensaje vacío\n");
+            return -1;
+        }
+
+        // Reserva de memoria
+        perfil->c_op = malloc(MAXSIZE);
+        perfil->IP = malloc(MAXSIZE);
+        *alias_dest = malloc(MAXSIZE);
+        *message = malloc(MAXSIZE);
+
+        strcpy(perfil->c_op, c_op);
+        strcpy(perfil->alias, alias);
+}
+
 
     return 0;
 }
@@ -205,23 +249,21 @@ void tratar_mensaje(void *sd_client_tratar)
     struct respuesta respuesta;	                //respuesta a la petición          
     int resultado;		                        // resultado de la operación 
     int sd_client;
-
-    
-    
     struct perfil perfil;
-    
 
+    // Para el posible envío de mensajes
+    char *alias_dest;
+    char *message;
+    
     pthread_mutex_lock(&mutex_mensaje);
 
     sd_client = (* (int *) sd_client_tratar);
-    
-    
     //Como ya se ha copiado el mensaje, despetarmos al servidor 
     mensaje_no_copiado = false;
     pthread_cond_signal(&cond_mensaje);
 	pthread_mutex_unlock(&mutex_mensaje);
 
-    resultado = recibir_msj_socket(sd_client, &perfil);
+    resultado = recibir_msj_socket(sd_client, &perfil, &alias_dest, &message);
 
     //leemos y ejecutamos la petición
      dprintf(2, "cop: %s\n", perfil.c_op);
@@ -241,19 +283,17 @@ void tratar_mensaje(void *sd_client_tratar)
 
     }else if (strcmp(perfil.c_op, "DISCONNECT")==0){
         resultado = disconnect_gestiones(perfil);
-    }
-    else {
+    } else if (strcmp(perfil.c_op, "SEND") == 0) {
+        resultado = send_to_server_gestiones(perfil, alias_dest, message);
+    } else {
         printf("Error: código de operación no válido.\n");
         exit(-1);
     }
 
-
-    
     respuesta.code_error = resultado;
     dprintf(2, "Respuesta: %d\n", respuesta.code_error);
     
     // Traducción de la respuesta a formato de red
-
     respuesta.code_error = htonl(respuesta.code_error);
 
     // Se envian todos los campos de la respuesta
@@ -268,8 +308,6 @@ void tratar_mensaje(void *sd_client_tratar)
     }
     
     close (sd_client);
-
-
 	pthread_exit(0);
 }
 

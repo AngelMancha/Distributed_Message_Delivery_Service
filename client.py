@@ -283,6 +283,42 @@ class client :
     # * @return ERROR the user does not exist or another error occurred
     @staticmethod
     def  send(user, message, window):
+        c_op = "SEND"
+        
+        # Creamos el socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Nos conectamos al servidor a través de los argumentos
+        server_address = (client._server, client._port)
+        print('connecting to {} port {}'.format(*server_address))
+        sock.connect(server_address)
+        
+        # Enviamos la info al servidor
+        try:
+            ############ OP. CODE ############
+            sock.sendall(c_op.encode("utf-8"))
+            sock.sendall(b'\0')
+            
+            ############ ALIAS USUARIO  ############
+            sock.sendall(client._alias.encode("utf-8"))
+            sock.sendall(b'\0')    
+            
+            ############ ALIAS DEST  ############
+            sock.sendall(user.encode("utf-8"))
+            sock.sendall(b'\0')    
+            
+            ############ MESSAGE ############
+            sock.sendall(message.encode("utf-8"))
+            sock.sendall(b'\0')   
+            
+
+        except socket.error as e:
+                print(f"Error al enviar los datos: {e}")
+        finally:
+            result = int.from_bytes(sock.recv(4), 'big')
+            
+            sock.close()
+        
         window['_SERVER_'].print("s> SEND MESSAGE OK")
         print("SEND " + user + " " + message)
         #  Write your code here
