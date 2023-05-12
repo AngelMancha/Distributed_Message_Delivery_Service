@@ -288,17 +288,12 @@ void tratar_mensaje(void *sd_client_tratar)
             dprintf(2, "\n********** CONNECT ************* \n");
 
         resultado = connect_gestiones(perfil);
-        dprintf(2, "El resultado esss al final del connect_gestiones %d\n", resultado);
-
-        char IP[MAXSIZE];
+        
+       char IP[MAXSIZE];
         int port;
         struct hostent *hp;
-        dprintf(2, "\n\nLLEGAS ANTES DE SABE SI PEPA CONESTADA\n");
         int connected = is_connected(perfil.alias, &port, IP);
         if (connected == 0 && obtener_mensajes(perfil.alias) > 0) {
-            dprintf(2, "\n\n\nLLEGAS JUSTO DESPUÉS DE SABE SI PEPA CONESTADA\n\n\n");
-            dprintf(2, "LA IP ES:  %s\n", IP);
-            dprintf(2, "EL PUERTO ES: %d\n ", port);
             // crear socket 
             int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
             if (socket_thread == -1) {
@@ -308,18 +303,12 @@ void tratar_mensaje(void *sd_client_tratar)
             struct sockaddr_in thread_addr;
             hp = gethostbyname(IP);
             memcpy(&(thread_addr.sin_addr), hp->h_addr, hp->h_length);
-            //thread_addr.sin_addr.s_addr = inet_addr(IP);
+
             thread_addr.sin_family = AF_INET;
             thread_addr.sin_port = htons(port);
-            // int cod = inet_pton(AF_INET, IP, &thread_addr.sin_addr) ;
+             printf(">>>>>>> %d\n", thread_addr.sin_port) ;
 
-            // if (cod <= 0) 
-            // { 
-            //     printf("\nInvalid address or address not supported\n") ;
-            //     close(socket_thread) ;
-            //     exit(-1);
-            // } 
-
+            // PROBLEMA: No conecta bien
             int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));
             if (cod < 0) {
                 perror("Error al conectar con el servidor\n");
