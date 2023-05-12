@@ -319,11 +319,19 @@ class client :
             
             sock.close()
         
-        window['_SERVER_'].print("s> SEND MESSAGE OK")
-        print("SEND " + user + " " + message)
-        #  Write your code here
-        return client.RC.ERROR
-
+        
+        
+        if result == 0:
+            window['_SERVER_'].print("s> SEND OK- MESSAGE <id>")
+            print("SEND " + user + " " + message)
+        if result == 1:
+            window['_SERVER_'].print("s> SEND FAIL / USER DOES NOT EXIST")
+            return client.RC.USER_ERROR
+        if result == 2:
+            window['_SERVER_'].print("s> DISCONNECT FAIL / USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+        return client.RC.ERROR 
+    
     # *
     # * @param user    - Receiver user name
     # * @param message - Message to be sent

@@ -21,9 +21,9 @@ struct respuesta {
 };
 
 struct mensaje{
-    char *mensaje;
+    char mensaje[MAXSIZE];
     unsigned int id;
-    char *remitente;
+    char remitente[MAXSIZE];
 };
 
 

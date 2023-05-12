@@ -11,9 +11,12 @@
 int register_gestiones(struct perfil perfil){
     
     FILE *fichero_perfil;
+    FILE *fichero_mensajes;	
     char nombre_fichero[50];
+    char nombre_mensajes_pendientes[50];
 
     sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, formato_fichero);
+    sprintf(nombre_mensajes_pendientes, "%s%s%s", peticion_root, perfil.alias, "_mensajes.dat");
     
     // Comprobamos la existencia de la clave
 
@@ -23,10 +26,12 @@ int register_gestiones(struct perfil perfil){
         return 1;
     }
 
+
     perfil.status = malloc(MAXSIZE);
     strcpy(perfil.status, "Desconectado");
 
     fichero_perfil = fopen(nombre_fichero, "wb");
+    fichero_mensajes = fopen(nombre_mensajes_pendientes, "wb");
 
     if (fichero_perfil != NULL) 
     {
@@ -37,6 +42,16 @@ int register_gestiones(struct perfil perfil){
         printf("Registro(): No se pudo abrir el archivo.\n");
         return 2;
     }
+
+    if (fichero_mensajes != NULL) 
+    {
+        fclose(fichero_mensajes);  
+    } else 
+    {
+        printf("Registro(): No se pudo abrir el archivo.\n");
+        return 2;
+    }
+
     printf("El usuario %s se ha registrado con éxito\n", perfil.alias);
    
     return 0;
@@ -204,79 +219,173 @@ int disconnect_gestiones(struct perfil perfil)
     return 0;
 }
 
-int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *mensaje){
-    //Esta función modifica el fichero que representa la clave key con los nuevos valores
+int is_connected(char* destinatario, int * port, char *IP)
+{
 
-    char str_key[20];
     char nombre_fichero[50];
-    char str_key_dest[20];
-    char nombre_fichero_dest[50];
-    //struct tupla_pet pet;
 
-    sprintf(str_key, "%s", perfil.alias);
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, str_key, formato_fichero);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, formato_fichero);
 
-    // Comprobamos la existencia del usuario origen
-    if (access(nombre_fichero, F_OK) != 0) 
-    {
-        perror("modify_value(): El usuario no existe");
-        return 1;
-    }
-
-    sprintf(str_key_dest, "%s", perfil.alias);
-    sprintf(nombre_fichero_dest, "%s%s%s", peticion_root, str_key_dest, formato_fichero);
-
-    // Comprobamos la existencia del usuario destino
-    if (access(nombre_fichero_dest, F_OK) != 0) 
-    {
-        perror("modify_value(): El usuario no existe");
-        return 1;
-    }
-
-    FILE *archivo = fopen(nombre_fichero_dest, "r+b");
+    FILE *archivo = fopen(nombre_fichero, "r+b");
     
     if (archivo == NULL) 
     {
-        perror("Modify_value_impl(): Error al abrir el archivo\n");
+        perror("Error al abrir el archivo\n");
         return 3;
     }
 
     // Mover el puntero de posición al inicio del archivo
     fseek(archivo, 0, SEEK_SET);
 
-    // Leer el registro original
-    struct perfil perfil_dest_antiguo;
-    fread(&perfil_dest_antiguo, sizeof(struct perfil), 1, archivo);
+    // Leer el registro
+    struct perfil perfil;
+    fread(&perfil, sizeof(struct perfil), 1, archivo);
 
-    // Crear un nuevo registro con los datos modificados
-    struct mensaje *mensajes_nuevos;
-    mensajes_nuevos = malloc(sizeof(perfil_dest_antiguo.mensajes) + sizeof(struct mensaje));
-    memcpy(mensajes_nuevos, perfil_dest_antiguo.mensajes, sizeof(perfil_dest_antiguo.mensajes)+ sizeof(struct mensaje));
+    if (strcmp(perfil.status, "Conectado") == 0){
+        perror("El usuario ya está conectado");
+        return 0;
+    }
 
-    //se crea el mensaje nuevo y se añade al array de mensajes nuevos
+    *port = perfil.port;
+    strcpy(IP,perfil.IP);
+    return 1;
+
+}
+
+
+// int sent_to_client_gestiones(char *destinatario){
+//     //Esta función modifica el fichero que representa la clave key con los nuevos valores
+//     int port;
+//     char IP;
+//     char nombre_fichero_mensajes[50];
+//     char nombre_fichero_perfil[50];
+
+//     //struct tupla_pet pet;
+//     sprintf(nombre_fichero_mensajes, "%s%s%s", peticion_root, destinatario, "_mensajes.dat");
+//     sprintf(nombre_fichero_perfil, "%s%s%s", peticion_root, destinatario, formato_fichero);
+//     // Comprobamos la existencia del usuario destino
+//     if (access(nombre_fichero_perfil, F_OK) != 0) 
+//     {
+//         perror("El usuario destinatario no existe");
+//         return 1;
+//     }
+
+//     FILE *archivo_perfil = fopen(nombre_fichero_perfil, "a+b");
+    
+//     if (archivo_perfil == NULL) 
+//     {
+//         perror("No se puede acceder al perfil\n");
+//         return 3;
+//     }
+
+//     struct perfil perfil;
+//     fread(&perfil, sizeof(struct perfil), 1, archivo_perfil);
+
+//     *port = perfil.port;
+//     strcpy(IP ,perfil.IP);
+
+
+//     // if (access(nombre_fichero_mensajes, F_OK) != 0) 
+//     // {
+//     //     perror("El usuario destinatario no existe");
+//     //     return 1;
+//     // }
+
+//     // FILE *archivo_mensajes = fopen(nombre_fichero_mensajes, "a+b");
+    
+//     // if (archivo_mensajes == NULL) 
+//     // {
+//     //     perror("No se puede acceder al perfil\n");
+//     //     return 3;
+//     // }
+
+// }
+
+
+
+int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *mensaje){
+    //Esta función modifica el fichero que representa la clave key con los nuevos valores
+    dprintf(2, "Send to server en gestiones.c\n");
+
+    char nombre_fichero[50];
+
+    char nombre_fichero_dest[50];
+    //struct tupla_pet pet;
+
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, "_mensajes.dat");
+
+    // Comprobamos la existencia del usuario origen
+    if (access(nombre_fichero, F_OK) != 0) 
+    {
+        perror("modify_value(): El usuario remitente no existe");
+        return 1;
+    }
+
+    sprintf(nombre_fichero_dest, "%s%s%s", peticion_root, destinatario, "_mensajes.dat");
+
+    // Comprobamos la existencia del usuario destino
+    if (access(nombre_fichero_dest, F_OK) != 0) 
+    {
+        perror("send(): El usuario destinatario no existe\n");
+        return 1;
+    }
+
+
+    //abrimos el fichero que contiene los mensajes pendientes del usuario destinatario
+
+    FILE *archivo = fopen(nombre_fichero_dest, "r+b");
+    
+    if (archivo == NULL) 
+    {
+        perror("send(): Error al abrir los mensajes pendientes del destinatario \n");
+        return 2;
+    }
+
+
+    // Mover el puntero de posición al final del archivo
+    fseek(archivo, 0, SEEK_END);
+
+
+
+    //se crea el mensaje nuevo y se añade al array de mensajes pendientes del destinatario
     struct mensaje mensaje_nuevo;
-    mensaje_nuevo.mensaje = malloc(MAXSIZE);
+
     mensaje_nuevo.id = 0;
-    mensaje_nuevo.remitente = malloc(MAXSIZE);
     strcpy(mensaje_nuevo.mensaje, mensaje);
     strcpy(mensaje_nuevo.remitente, perfil.alias);
 
 
-    int num_mensajes = sizeof(perfil_dest_antiguo.mensajes)/sizeof(struct mensaje);
-    mensajes_nuevos[num_mensajes] = mensaje_nuevo;
+    fwrite(&mensaje_nuevo, sizeof(struct mensaje), 1, archivo);
 
+    dprintf(2, "Calculando num de msjs\n");
 
-    perfil_dest_antiguo.mensajes = mensajes_nuevos;
-
-    // Mover el puntero de posición al inicio del archivo
-    fseek(archivo, 0, SEEK_SET);
-
-    // Escribir el nuevo registro a la estructura del perfil destino
-    fwrite(&perfil_dest_antiguo, sizeof(struct perfil), 1, archivo);
 
     fclose(archivo);
 
 
+    return 0;
+
+}
 
 
+
+int obtener_mensajes(char *destinatario){
+    char nombre_fichero[50];
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, "_mensajes.dat");
+
+
+    FILE *fp = fopen(nombre_fichero, "rb");
+    if (fp == NULL) {
+        printf("Error al abrir el archivo");
+        exit(1);
+    }
+    
+    int contador = 0;
+    struct mensaje mensaje;
+    while (fread(&mensaje, sizeof(struct mensaje), 1, fp) == 1) {
+        contador++;
+    }
+
+    fclose(fp);
+    return contador;
 }

@@ -69,7 +69,7 @@ ssize_t readLine(int fd, void *buffer, size_t n)
 
 
 
-int recibir_msj_socket(int sd_client, struct perfil *perfil, char **alias_dest, char **message) {
+int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, char *message) {
    
     char username [MAXSIZE];
     char alias [MAXSIZE];
@@ -200,41 +200,45 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char **alias_dest, 
     // ************** SEND **************
     // **************************************
     } else if (strcmp(c_op, "SEND") == 0) { 
-
+        dprintf(2, "Acabo de recibir send\n");
         // ********** ALIAS USER ***********
         if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
             perror("Error al leer el sd_client");
             return -1;
         }
+        dprintf(2, "Haciendo ilegalidades con ALIAS DEST en send\n");
 
         // ********** ALIAS DEST ***********
-        if (*alias_dest && readLine(sd_client, (char*) *alias_dest, MAXSIZE) < 0) {
+        if (readLine(sd_client, (char*) alias_dest, MAXSIZE) < 0) {
             perror("Error al leer el sd_client");
             return -1;
         }
-        if (!*alias_dest || **alias_dest == '\0') {
-            fprintf(stderr, "Error: alias_dest vacío\n");
-            return -1;
-        }
+        // if (!*alias_dest || **alias_dest == '\0') {
+        //     fprintf(stderr, "Error: alias_dest vacío\n");
+        //     return -1;
+        // }
+        dprintf(2, "vALOR DEST EN send ES %s\n", alias_dest);
+        dprintf(2, "Haciendo ilegalidades con MESSAGE en send\n");
 
         // ********** MESSAGE ***********
-        if (*message && readLine(sd_client, (char*) *message, MAXSIZE) < 0) {
+        if (readLine(sd_client, (char*) message, MAXSIZE) < 0) {
             perror("Error al leer el sd_client");
             return -1;
         }
-        if (!*message || **message == '\0') {
-            fprintf(stderr, "Error: mensaje vacío\n");
-            return -1;
-        }
+        // if (!*message || **message == '\0') {
+        //     fprintf(stderr, "Error: mensaje vacío\n");
+        //     return -1;
+        // }
 
         // Reserva de memoria
         perfil->c_op = malloc(MAXSIZE);
         perfil->IP = malloc(MAXSIZE);
-        *alias_dest = malloc(MAXSIZE);
-        *message = malloc(MAXSIZE);
+    
 
         strcpy(perfil->c_op, c_op);
         strcpy(perfil->alias, alias);
+        dprintf(2, "Finalizo send\n");
+
 }
 
 
@@ -252,8 +256,8 @@ void tratar_mensaje(void *sd_client_tratar)
     struct perfil perfil;
 
     // Para el posible envío de mensajes
-    char *alias_dest;
-    char *message;
+    char alias_dest[MAXSIZE];
+    char message[MAXSIZE];
     
     pthread_mutex_lock(&mutex_mensaje);
 
@@ -263,8 +267,9 @@ void tratar_mensaje(void *sd_client_tratar)
     pthread_cond_signal(&cond_mensaje);
 	pthread_mutex_unlock(&mutex_mensaje);
 
-    resultado = recibir_msj_socket(sd_client, &perfil, &alias_dest, &message);
-
+    resultado = recibir_msj_socket(sd_client, &perfil, alias_dest, message);
+    dprintf(2, "En el tratar mensaje, el alias_dest es %s\n", alias_dest);
+    dprintf(2, "En el tratar mensaje, el message es %s\n", message);
     //leemos y ejecutamos la petición
      dprintf(2, "cop: %s\n", perfil.c_op);
 
@@ -289,6 +294,38 @@ void tratar_mensaje(void *sd_client_tratar)
         printf("Error: código de operación no válido.\n");
         exit(-1);
     }
+
+
+    char IP[MAXSIZE];
+    int port;
+    dprintf(2, "LLEGAS ANTES DE SABE SI PEPA CONESTADA\n");
+
+    if (is_connected(alias_dest, &port, IP) == 0) {
+        dprintf(2, "LLEGAS JUSTO DESPUÉS DE SABE SI PEPA CONESTADA\n");
+        // crear socket 
+        int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
+        if (socket_thread == -1) {
+            printf("Error al crear el socket\n");
+            resultado = -1; //MIRAAAAR
+        }
+        struct sockaddr_in thread_addr;
+        thread_addr.sin_addr.s_addr = inet_addr(IP);
+        thread_addr.sin_family = AF_INET;
+        thread_addr.sin_port = htons(port);
+
+        if (connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr)) < 0) {
+            printf("Error al conectar con el servidor");
+            resultado = -1; //MIRAAAAR
+        }
+
+        //send y receivea
+        int contador = obtener_mensajes(alias_dest);
+        dprintf(2, "EL NUMERO DE MENSAJES ES %d\n", contador);
+        // close socket
+        close(socket_thread);
+    }
+
+
 
     respuesta.code_error = resultado;
     dprintf(2, "Respuesta: %d\n", respuesta.code_error);
