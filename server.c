@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include "gestiones.h"
 #include "comunicacion.h"
 #include <errno.h>
@@ -284,7 +285,57 @@ void tratar_mensaje(void *sd_client_tratar)
         resultado = unregister_gestiones(perfil);
         
     } else if (strcmp(perfil.c_op, "CONNECT") == 0) {
+            dprintf(2, "\n********** CONNECT ************* \n");
+
         resultado = connect_gestiones(perfil);
+        dprintf(2, "El resultado esss al final del connect_gestiones %d\n", resultado);
+
+        char IP[MAXSIZE];
+        int port;
+        struct hostent *hp;
+        dprintf(2, "\n\nLLEGAS ANTES DE SABE SI PEPA CONESTADA\n");
+        int connected = is_connected(perfil.alias, &port, IP);
+        if (connected == 0 && obtener_mensajes(perfil.alias) > 0) {
+            dprintf(2, "\n\n\nLLEGAS JUSTO DESPUÉS DE SABE SI PEPA CONESTADA\n\n\n");
+            dprintf(2, "LA IP ES:  %s\n", IP);
+            dprintf(2, "EL PUERTO ES: %d\n ", port);
+            // crear socket 
+            int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
+            if (socket_thread == -1) {
+                perror("Error al crear el socket\n");
+                resultado = 3; //MIRAAAAR
+            }
+            struct sockaddr_in thread_addr;
+            hp = gethostbyname(IP);
+            memcpy(&(thread_addr.sin_addr), hp->h_addr, hp->h_length);
+            //thread_addr.sin_addr.s_addr = inet_addr(IP);
+            thread_addr.sin_family = AF_INET;
+            thread_addr.sin_port = htons(port);
+            // int cod = inet_pton(AF_INET, IP, &thread_addr.sin_addr) ;
+
+            // if (cod <= 0) 
+            // { 
+            //     printf("\nInvalid address or address not supported\n") ;
+            //     close(socket_thread) ;
+            //     exit(-1);
+            // } 
+
+            int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));
+            if (cod < 0) {
+                perror("Error al conectar con el servidor\n");
+                resultado = 3; //MIRAAAAR
+            }
+
+            //send y receive
+            int contador = obtener_mensajes(perfil.alias);
+            dprintf(2, "EL NUMERO DE MENSAJES ES %d\n", contador);
+            // close socket
+            close(socket_thread);
+            dprintf(2, "El resultado esss al final del CONNECT: %d\n", resultado);
+
+        }
+
+
 
     }else if (strcmp(perfil.c_op, "DISCONNECT")==0){
         resultado = disconnect_gestiones(perfil);
@@ -294,38 +345,6 @@ void tratar_mensaje(void *sd_client_tratar)
         printf("Error: código de operación no válido.\n");
         exit(-1);
     }
-
-
-    char IP[MAXSIZE];
-    int port;
-    dprintf(2, "LLEGAS ANTES DE SABE SI PEPA CONESTADA\n");
-
-    if (is_connected(alias_dest, &port, IP) == 0) {
-        dprintf(2, "LLEGAS JUSTO DESPUÉS DE SABE SI PEPA CONESTADA\n");
-        // crear socket 
-        int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
-        if (socket_thread == -1) {
-            printf("Error al crear el socket\n");
-            resultado = -1; //MIRAAAAR
-        }
-        struct sockaddr_in thread_addr;
-        thread_addr.sin_addr.s_addr = inet_addr(IP);
-        thread_addr.sin_family = AF_INET;
-        thread_addr.sin_port = htons(port);
-
-        if (connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr)) < 0) {
-            printf("Error al conectar con el servidor");
-            resultado = -1; //MIRAAAAR
-        }
-
-        //send y receivea
-        int contador = obtener_mensajes(alias_dest);
-        dprintf(2, "EL NUMERO DE MENSAJES ES %d\n", contador);
-        // close socket
-        close(socket_thread);
-    }
-
-
 
     respuesta.code_error = resultado;
     dprintf(2, "Respuesta: %d\n", respuesta.code_error);

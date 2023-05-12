@@ -220,8 +220,8 @@ int disconnect_gestiones(struct perfil perfil)
 }
 
 int is_connected(char* destinatario, int * port, char *IP)
-{
-
+{   
+    dprintf(2, "ESTOY  DENTRO DE ISCONNECTED\n");
     char nombre_fichero[50];
 
     sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, formato_fichero);
@@ -241,66 +241,18 @@ int is_connected(char* destinatario, int * port, char *IP)
     struct perfil perfil;
     fread(&perfil, sizeof(struct perfil), 1, archivo);
 
-    if (strcmp(perfil.status, "Conectado") == 0){
-        perror("El usuario ya está conectado");
-        return 0;
+    if (strcmp(perfil.status, "Conectado") != 0){
+        perror("El usuario no está conectado");
+        return 1;
     }
+    dprintf(2, "\n\n *************IS_CONNECTED*************\n\n");
+    dprintf(2, "Puerto: %d\n IP: %s\n", perfil.port, perfil.IP);
 
     *port = perfil.port;
     strcpy(IP,perfil.IP);
-    return 1;
+    return 0;
 
 }
-
-
-// int sent_to_client_gestiones(char *destinatario){
-//     //Esta función modifica el fichero que representa la clave key con los nuevos valores
-//     int port;
-//     char IP;
-//     char nombre_fichero_mensajes[50];
-//     char nombre_fichero_perfil[50];
-
-//     //struct tupla_pet pet;
-//     sprintf(nombre_fichero_mensajes, "%s%s%s", peticion_root, destinatario, "_mensajes.dat");
-//     sprintf(nombre_fichero_perfil, "%s%s%s", peticion_root, destinatario, formato_fichero);
-//     // Comprobamos la existencia del usuario destino
-//     if (access(nombre_fichero_perfil, F_OK) != 0) 
-//     {
-//         perror("El usuario destinatario no existe");
-//         return 1;
-//     }
-
-//     FILE *archivo_perfil = fopen(nombre_fichero_perfil, "a+b");
-    
-//     if (archivo_perfil == NULL) 
-//     {
-//         perror("No se puede acceder al perfil\n");
-//         return 3;
-//     }
-
-//     struct perfil perfil;
-//     fread(&perfil, sizeof(struct perfil), 1, archivo_perfil);
-
-//     *port = perfil.port;
-//     strcpy(IP ,perfil.IP);
-
-
-//     // if (access(nombre_fichero_mensajes, F_OK) != 0) 
-//     // {
-//     //     perror("El usuario destinatario no existe");
-//     //     return 1;
-//     // }
-
-//     // FILE *archivo_mensajes = fopen(nombre_fichero_mensajes, "a+b");
-    
-//     // if (archivo_mensajes == NULL) 
-//     // {
-//     //     perror("No se puede acceder al perfil\n");
-//     //     return 3;
-//     // }
-
-// }
-
 
 
 int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *mensaje){
