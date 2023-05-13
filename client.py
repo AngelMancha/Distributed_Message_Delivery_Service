@@ -161,17 +161,17 @@ class client :
     def  connect(user, window):
         c_op = "CONNECT"
         
-        with socket.socket() as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind(("0.0.0.0", 0))
-            
-            port = s.getsockname()[1]
-            s.listen()
+        s = socket.socket()
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(("0.0.0.0", 0))
+        
+        port = s.getsockname()[1]
+        s.listen(10)
 
-            # (2) Creamos el hilo 
-            client._keep_running = True
-            connection_server_th = threading.Thread(target=client.connection_server_th, args=(port, s))
-            connection_server_th.start()
+        # (2) Creamos el hilo 
+        client._keep_running = True
+        connection_server_th = threading.Thread(target=client.connection_server_th, args=(port, s))
+        connection_server_th.start()
             
         # Creamos un objeto de socket
         client_socket = socket.socket()
@@ -358,25 +358,26 @@ class client :
         print("\n\nCreando hilo...")
         print("El puerto del hilo es ", port)
         # Escucha a los mensajes que puede enviar el servidor
-        try:
-            while client._keep_running:
-            # Verificar si el socket todavía está abierto
-                if sock.fileno() == -1:
-                    print("Socket se ha cerrado")
-                    break
-            
-                # Aceptar la conexión
-                connection = sock.accept()
-                print(f"Connection from {connection.getpeername()}")
+        print("Dentro del try...")
+        while client._keep_running:
+            print("Waiting for a connection...")
+            connection, address = sock.accept()
+            try: 
+                print("Connection from", address)
+                message = b''
+                while True:
+                    message = connection.recv(1)
+                    if (message == b'\0'):
+                        break
+                    message += message.decode('utf-8')
+
+                print(f"Received message: {message}")
+                message += message + b'\0'
                 
-                # Recibir el mensaje
-                data = connection.recv(1024)
-                print(f"Received message: {data.decode('utf-8')}")
-            
-        finally:
-            # Cerrar la conexión
-            print("Cerrando conexión del socket")
-            connection.close()
+            finally:
+                # Cerrar la conexión
+                print("Cerrando conexión del socket")
+                connection.close()
                 
 
     @staticmethod

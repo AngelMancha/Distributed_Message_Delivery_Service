@@ -318,6 +318,23 @@ void tratar_mensaje(void *sd_client_tratar)
             //send y receive
             int contador = obtener_mensajes(perfil.alias);
             dprintf(2, "EL NUMERO DE MENSAJES ES %d\n", contador);
+
+
+            char hola[MAXSIZE] = "mensaje prueba\0";
+            if (write(socket_thread, (char *)&(hola), sizeof(MAXSIZE)) < 0)
+            {
+                perror("write: ");
+                resultado = 3;
+            }
+            // char cadena_vacia[MAXSIZE] ='\0';
+
+            // if (write(socket_thread, (char *)&(cadena_vacia), sizeof(MAXSIZE)) < 0)
+            // {
+            //     perror("write: ");
+            //     resultado = 3;
+            // }
+
+
             // close socket
             close(socket_thread);
             dprintf(2, "El resultado esss al final del CONNECT: %d\n", resultado);
