@@ -364,20 +364,32 @@ class client :
             connection, address = sock.accept()
             try: 
                 print("Connection from", address)
-                message = b''
+                print('\nEmpezando a guardar mensaje...')
+                message_total = ''
                 while True:
-                    message = connection.recv(1)
-                    if (message == b'\0'):
+                    message = connection.recv(1).decode('utf-8')
+                    print(f"Recibiendo mensaje: {message}")
+                    if message == '\0':
                         break
-                    message += message.decode('utf-8')
+                    message_total += message
+                #message= connection.recv(1024).decode("utf-8")
+                # message = connection.recv(1024).decode('utf-8')
+                #print(f"Received message: {message}")
+                # message2 = connection.recv(1024).decode('utf-8')
+                print(f"Received message: {message_total}")
+                # message1, message2 = message.split('\0')
+                # print(f"Received message: {message1}")
+                # print(f"Received message: {message2}")
 
-                print(f"Received message: {message}")
-                message += message + b'\0'
-                
+
             finally:
                 # Cerrar la conexión
                 print("Cerrando conexión del socket")
                 connection.close()
+
+        # if client._keep_running == False:
+        #     sock.close()
+
                 
 
     @staticmethod

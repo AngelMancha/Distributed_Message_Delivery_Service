@@ -68,7 +68,21 @@ ssize_t readLine(int fd, void *buffer, size_t n)
     	return totRead;
 }
 
+int sendMessage(int socket, char *buffer, int len)
+{
+    int r;
+    int l = len;
+    do { 
+        r = write(socket, buffer, l);
+        l = l - r;
+        buffer = buffer + r;
+    } while ((l>0) && (r>=0));
 
+    if (r < 0)
+        return (-1); /* fallo */
+    else 
+        return(0); /* se ha enviado longitud */
+}
 
 int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, char *message) {
    
@@ -292,51 +306,56 @@ void tratar_mensaje(void *sd_client_tratar)
        char IP[MAXSIZE];
         int port;
         struct hostent *hp;
+        //Comprobamos si tiene mensajes pendientes y si es así se los enviamos
         int connected = is_connected(perfil.alias, &port, IP);
         if (connected == 0 && obtener_mensajes(perfil.alias) > 0) {
             // crear socket 
-            int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
-            if (socket_thread == -1) {
-                perror("Error al crear el socket\n");
-                resultado = 3; //MIRAAAAR
-            }
-            struct sockaddr_in thread_addr;
-            hp = gethostbyname(IP);
-            memcpy(&(thread_addr.sin_addr), hp->h_addr, hp->h_length);
+           
 
-            thread_addr.sin_family = AF_INET;
-            thread_addr.sin_port = htons(port);
-             printf(">>>>>>> %d\n", thread_addr.sin_port) ;
 
-            // PROBLEMA: No conecta bien
-            int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));
-            if (cod < 0) {
-                perror("Error al conectar con el servidor\n");
-                resultado = 3; //MIRAAAAR
-            }
+            
 
             //send y receive
             int contador = obtener_mensajes(perfil.alias);
             dprintf(2, "EL NUMERO DE MENSAJES ES %d\n", contador);
 
+            //obtener tods los mensajes pendientes y enviarlos
 
-            char hola[MAXSIZE] = "mensaje prueba\0";
-            if (write(socket_thread, (char *)&(hola), sizeof(MAXSIZE)) < 0)
-            {
-                perror("write: ");
-                resultado = 3;
+            char **cadena_pendientes = extraerMensajes(perfil.alias, contador);
+            for (int i = 0; i < contador; i++) {
+                printf("SENDING.... %s\n", cadena_pendientes[i]);
+                int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
+                if (socket_thread == -1) {
+                    perror("Error al crear el socket\n");
+                    resultado = 3; //MIRAAAAR
+                }
+                struct sockaddr_in thread_addr;
+                hp = gethostbyname(IP);
+                memcpy(&(thread_addr.sin_addr), hp->h_addr, hp->h_length);
+
+                thread_addr.sin_family = AF_INET;
+                thread_addr.sin_port = htons(port);
+                printf(">>>>>>> %d\n", thread_addr.sin_port) ;
+                
+                
+                int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));
+                if (cod < 0) {
+                    perror("Error al conectar con el servidor\n");
+                    resultado = 3; //MIRAAAAR
+                }
+
+                if (sendMessage(socket_thread, cadena_pendientes[i], strlen(cadena_pendientes[i])+1) < 0)
+                {
+                    perror("write: ");
+                    resultado = 3;
+                }
+
+                free(cadena_pendientes[i]);
+                close(socket_thread);
             }
-            // char cadena_vacia[MAXSIZE] ='\0';
-
-            // if (write(socket_thread, (char *)&(cadena_vacia), sizeof(MAXSIZE)) < 0)
-            // {
-            //     perror("write: ");
-            //     resultado = 3;
-            // }
-
-
+            free(cadena_pendientes);
+            
             // close socket
-            close(socket_thread);
             dprintf(2, "El resultado esss al final del CONNECT: %d\n", resultado);
 
         }

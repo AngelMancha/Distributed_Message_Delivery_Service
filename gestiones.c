@@ -341,3 +341,38 @@ int obtener_mensajes(char *destinatario){
     fclose(fp);
     return contador;
 }
+
+
+char **extraerMensajes(char *destinatario, int numMensajes) {
+
+    char nombre_fichero[50];
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, "_mensajes.dat");
+
+    FILE *fp = fopen(nombre_fichero, "rb");
+    if (fp == NULL) {
+        printf("Error al abrir el archivo");
+        exit(1);
+    }
+
+    // Crear un array de strings para almacenar los mensajes
+    char **mensajes = malloc(numMensajes * sizeof(char *));
+    if (mensajes == NULL) {
+        printf("Error al asignar memoria");
+        exit(1);
+    }
+    
+    // Leer cada estructura y extraer el campo "mensaje"
+    struct mensaje mensaje;
+    for (int i = 0; i < numMensajes; i++) {
+        fread(&mensaje, sizeof(struct mensaje), 1, fp);
+        mensajes[i] = malloc(strlen(mensaje.mensaje) + 1);
+        if (mensajes[i] == NULL) {
+            printf("Error al asignar memoria");
+            exit(1);
+        }
+        strcpy(mensajes[i], mensaje.mensaje);
+    }
+    
+    fclose(fp);
+    return mensajes;
+}
