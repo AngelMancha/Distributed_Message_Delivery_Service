@@ -25,7 +25,67 @@ pthread_mutex_t mutex_mensaje;
 int mensaje_no_copiado;
 pthread_cond_t cond_mensaje;
 
+int sendMessage(int socket, char *buffer, int len)
+{
+    int r;
+    int l = len;
+    do { 
+        r = write(socket, buffer, l);
+        l = l - r;
+        buffer = buffer + r;
+    } while ((l>0) && (r>=0));
 
+    if (r < 0)
+        return (-1); /* fallo */
+    else 
+        return(0); /* se ha enviado longitud */
+}
+
+int envio_mensajes_pendientes(char *alias, char *IP, int port) {
+    struct hostent *hp;
+    int contador = obtener_mensajes(alias);
+    dprintf(2, "EL NUMERO DE MENSAJES ES %d\n", contador);
+    // EXTRAER A UNA FUNCION
+    //obtener tods los mensajes pendientes y enviarlos
+    char **cadena_pendientes = extraerMensajes(alias, contador);
+    for (int i = 0; i < contador; i++) {
+        printf("SENDING.... %s\n", cadena_pendientes[i]);
+        int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
+        if (socket_thread == -1) {
+            perror("Error al crear el socket\n");
+            return 3; //MIRAAAAR
+        }
+        struct sockaddr_in thread_addr;
+        hp = gethostbyname(IP);
+        memcpy(&(thread_addr.sin_addr), hp->h_addr, hp->h_length);
+
+        thread_addr.sin_family = AF_INET;
+        thread_addr.sin_port = htons(port);
+        printf(">>>>>>> %d\n", thread_addr.sin_port) ;
+        
+        
+        int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));
+        if (cod < 0) {
+            perror("Error al conectar con el servidor\n");
+            return 3; //MIRAAAAR
+        }
+
+        if (sendMessage(socket_thread, cadena_pendientes[i], strlen(cadena_pendientes[i])+1) < 0)
+        {
+            perror("write: ");
+            return 3;
+        }
+
+        free(cadena_pendientes[i]);
+        close(socket_thread);
+    }
+    free(cadena_pendientes);
+    // close socket
+    
+
+    return 0;
+
+}
 
 ssize_t readLine(int fd, void *buffer, size_t n)
 {
@@ -68,21 +128,7 @@ ssize_t readLine(int fd, void *buffer, size_t n)
     	return totRead;
 }
 
-int sendMessage(int socket, char *buffer, int len)
-{
-    int r;
-    int l = len;
-    do { 
-        r = write(socket, buffer, l);
-        l = l - r;
-        buffer = buffer + r;
-    } while ((l>0) && (r>=0));
 
-    if (r < 0)
-        return (-1); /* fallo */
-    else 
-        return(0); /* se ha enviado longitud */
-}
 
 int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, char *message) {
    
@@ -262,14 +308,13 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
 
 void tratar_mensaje(void *sd_client_tratar) 
 {   
-    
-    dprintf(2, "He llegado a tratar\n");
     //struct perfil mensaje;	                    //mensaje local 		
     struct respuesta respuesta;	                //respuesta a la petición          
     int resultado;		                        // resultado de la operación 
     int sd_client;
     struct perfil perfil;
-
+    char IP[MAXSIZE];
+    int port;
     // Para el posible envío de mensajes
     char alias_dest[MAXSIZE];
     char message[MAXSIZE];
@@ -283,13 +328,8 @@ void tratar_mensaje(void *sd_client_tratar)
 	pthread_mutex_unlock(&mutex_mensaje);
 
     resultado = recibir_msj_socket(sd_client, &perfil, alias_dest, message);
-    dprintf(2, "En el tratar mensaje, el alias_dest es %s\n", alias_dest);
-    dprintf(2, "En el tratar mensaje, el message es %s\n", message);
-    //leemos y ejecutamos la petición
-     dprintf(2, "cop: %s\n", perfil.c_op);
 
     if (strcmp(perfil.c_op, "REGISTER") == 0) {
-        dprintf(2, "\n\nSe ha hecho una llamada al método REGISTER\n");
         perfil.status = "Desconectado";
         perfil.port = 0;
         resultado = register_gestiones(perfil);
@@ -299,73 +339,33 @@ void tratar_mensaje(void *sd_client_tratar)
         resultado = unregister_gestiones(perfil);
         
     } else if (strcmp(perfil.c_op, "CONNECT") == 0) {
-            dprintf(2, "\n********** CONNECT ************* \n");
+        dprintf(2, "\n********** CONNECT ************* \n");
 
         resultado = connect_gestiones(perfil);
-        
-       char IP[MAXSIZE];
-        int port;
-        struct hostent *hp;
+
         //Comprobamos si tiene mensajes pendientes y si es así se los enviamos
         int connected = is_connected(perfil.alias, &port, IP);
         if (connected == 0 && obtener_mensajes(perfil.alias) > 0) {
-            // crear socket 
-           
-
-
+            resultado = envio_mensajes_pendientes(perfil.alias, IP, port);
             
-
-            //send y receive
-            int contador = obtener_mensajes(perfil.alias);
-            dprintf(2, "EL NUMERO DE MENSAJES ES %d\n", contador);
-
-            //obtener tods los mensajes pendientes y enviarlos
-
-            char **cadena_pendientes = extraerMensajes(perfil.alias, contador);
-            for (int i = 0; i < contador; i++) {
-                printf("SENDING.... %s\n", cadena_pendientes[i]);
-                int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
-                if (socket_thread == -1) {
-                    perror("Error al crear el socket\n");
-                    resultado = 3; //MIRAAAAR
-                }
-                struct sockaddr_in thread_addr;
-                hp = gethostbyname(IP);
-                memcpy(&(thread_addr.sin_addr), hp->h_addr, hp->h_length);
-
-                thread_addr.sin_family = AF_INET;
-                thread_addr.sin_port = htons(port);
-                printf(">>>>>>> %d\n", thread_addr.sin_port) ;
-                
-                
-                int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));
-                if (cod < 0) {
-                    perror("Error al conectar con el servidor\n");
-                    resultado = 3; //MIRAAAAR
-                }
-
-                if (sendMessage(socket_thread, cadena_pendientes[i], strlen(cadena_pendientes[i])+1) < 0)
-                {
-                    perror("write: ");
-                    resultado = 3;
-                }
-
-                free(cadena_pendientes[i]);
-                close(socket_thread);
-            }
-            free(cadena_pendientes);
-            
-            // close socket
-            dprintf(2, "El resultado esss al final del CONNECT: %d\n", resultado);
-
         }
-
-
 
     }else if (strcmp(perfil.c_op, "DISCONNECT")==0){
         resultado = disconnect_gestiones(perfil);
+        
     } else if (strcmp(perfil.c_op, "SEND") == 0) {
+
+
+        
         resultado = send_to_server_gestiones(perfil, alias_dest, message);
+        int connected = is_connected(alias_dest, &port, IP);
+
+        if (connected == 0 && obtener_mensajes(alias_dest) > 0) {
+            resultado = envio_mensajes_pendientes(alias_dest, IP, port); 
+        }
+        
+
+        
     } else {
         printf("Error: código de operación no válido.\n");
         exit(-1);

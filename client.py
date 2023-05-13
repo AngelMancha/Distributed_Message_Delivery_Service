@@ -170,7 +170,7 @@ class client :
 
         # (2) Creamos el hilo 
         client._keep_running = True
-        connection_server_th = threading.Thread(target=client.connection_server_th, args=(port, s))
+        connection_server_th = threading.Thread(target=client.connection_server_th, args=(port, s, window))
         connection_server_th.start()
             
         # Creamos un objeto de socket
@@ -354,7 +354,7 @@ class client :
 
 
     @staticmethod
-    def connection_server_th(port: int, sock):
+    def connection_server_th(port: int, sock, window):
         print("\n\nCreando hilo...")
         print("El puerto del hilo es ", port)
         # Escucha a los mensajes que puede enviar el servidor
@@ -377,6 +377,8 @@ class client :
                 #print(f"Received message: {message}")
                 # message2 = connection.recv(1024).decode('utf-8')
                 print(f"Received message: {message_total}")
+                window['_SERVER_'].print("s> > MESSAGE <id> FROM <userName>" + message_total)
+
                 # message1, message2 = message.split('\0')
                 # print(f"Received message: {message1}")
                 # print(f"Received message: {message2}")

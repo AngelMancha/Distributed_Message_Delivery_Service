@@ -372,7 +372,10 @@ char **extraerMensajes(char *destinatario, int numMensajes) {
         }
         strcpy(mensajes[i], mensaje.mensaje);
     }
-    
     fclose(fp);
+
+    // eliminar contenido
+    FILE *fp_remove = fopen(nombre_fichero, "wb");
+    fclose(fp_remove);
     return mensajes;
 }
