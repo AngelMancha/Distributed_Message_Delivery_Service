@@ -7,6 +7,7 @@
 #include "gestiones.h"
 #define peticion_root "./DDBB/" // raiz para coger los ficheros
 #define formato_fichero ".dat"   
+#define extension_mensajes "_mensajes.dat"
 
 int register_gestiones(struct perfil perfil){
     
@@ -16,7 +17,7 @@ int register_gestiones(struct perfil perfil){
     char nombre_mensajes_pendientes[50];
 
     sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, formato_fichero);
-    sprintf(nombre_mensajes_pendientes, "%s%s%s", peticion_root, perfil.alias, "_mensajes.dat");
+    sprintf(nombre_mensajes_pendientes, "%s%s%s", peticion_root, perfil.alias, extension_mensajes);
     
     // Comprobamos la existencia de la clave
 
@@ -254,45 +255,52 @@ int is_connected(char* destinatario, int * port, char *IP)
 
 }
 
+int obtener_ultimo_id(FILE *archivo, int num_mensajes) {
+    struct mensaje mensaje;
+    int ultimo_id;
+    for (int i = 0; i < num_mensajes; i++) {
+        if (i == num_mensajes) {
+        fread(&mensaje, sizeof(struct mensaje), 1, archivo);
+        }
+        ultimo_id = mensaje.id;
+    }
+    
+    return ultimo_id;
+
+}
 
 int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *mensaje){
     //Esta función modifica el fichero que representa la clave key con los nuevos valores
-    dprintf(2, "Send to server en gestiones.c\n");
-
     char nombre_fichero[50];
-
     char nombre_fichero_dest[50];
+    int ultimo_id;
+    struct mensaje mensaje_nuevo;
+    int num_mensajes;
+    
     //struct tupla_pet pet;
-
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, "_mensajes.dat");
-
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, extension_mensajes);
     // Comprobamos la existencia del usuario origen
     if (access(nombre_fichero, F_OK) != 0) 
     {
-        perror("modify_value(): El usuario remitente no existe");
+        perror("Error: El usuario remitente no existe");
         return 1;
     }
-
-    sprintf(nombre_fichero_dest, "%s%s%s", peticion_root, destinatario, "_mensajes.dat");
+    sprintf(nombre_fichero_dest, "%s%s%s", peticion_root, destinatario, extension_mensajes);
 
     // Comprobamos la existencia del usuario destino
     if (access(nombre_fichero_dest, F_OK) != 0) 
     {
-        perror("send(): El usuario destinatario no existe\n");
+        perror("Error: El usuario destinatario no existe\n");
         return 1;
     }
 
-
     //abrimos el fichero que contiene los mensajes pendientes del usuario destinatario
-
     FILE *archivo = fopen(nombre_fichero_dest, "r+b");
-    
     if (archivo == NULL) 
     {
         perror("send(): Error al abrir los mensajes pendientes del destinatario \n");
         return 2;
     }
-
 
     // Mover el puntero de posición al final del archivo
     fseek(archivo, 0, SEEK_END);
@@ -300,9 +308,16 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
 
 
     //se crea el mensaje nuevo y se añade al array de mensajes pendientes del destinatario
-    struct mensaje mensaje_nuevo;
-
-    mensaje_nuevo.id = 0;
+    
+    num_mensajes = obtener_mensajes(perfil.alias);
+    if (num_mensajes == 0) {
+        ultimo_id = -1;
+    }
+    else {
+        ultimo_id = obtener_ultimo_id(archivo, num_mensajes);
+    }
+    
+    mensaje_nuevo.id = ultimo_id + 1;
     strcpy(mensaje_nuevo.mensaje, mensaje);
     strcpy(mensaje_nuevo.remitente, perfil.alias);
 
@@ -323,7 +338,7 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
 
 int obtener_mensajes(char *destinatario){
     char nombre_fichero[50];
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, "_mensajes.dat");
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, extension_mensajes);
 
 
     FILE *fp = fopen(nombre_fichero, "rb");
@@ -346,7 +361,7 @@ int obtener_mensajes(char *destinatario){
 char **extraerMensajes(char *destinatario, int numMensajes) {
 
     char nombre_fichero[50];
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, "_mensajes.dat");
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, extension_mensajes);
 
     FILE *fp = fopen(nombre_fichero, "rb");
     if (fp == NULL) {

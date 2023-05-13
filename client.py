@@ -361,7 +361,7 @@ class client :
         print("Dentro del try...")
         while client._keep_running:
             print("Waiting for a connection...")
-            connection, address = sock.accept()
+            connection, address = sock.accept() 
             try: 
                 print("Connection from", address)
                 print('\nEmpezando a guardar mensaje...')
@@ -372,12 +372,13 @@ class client :
                     if message == '\0':
                         break
                     message_total += message
-                #message= connection.recv(1024).decode("utf-8")
-                # message = connection.recv(1024).decode('utf-8')
-                #print(f"Received message: {message}")
-                # message2 = connection.recv(1024).decode('utf-8')
-                print(f"Received message: {message_total}")
-                window['_SERVER_'].print("s> > MESSAGE <id> FROM <userName>" + message_total)
+                    #     message_total = message_total
+                    #message= connection.recv(1024).decode("utf-8")
+                    # message = connection.recv(1024).decode('utf-8')
+                    #print(f"Received message: {message}")
+                    # message2 = connection.recv(1024).decode('utf-8')
+                    print(f"Received message: {message_total}")
+                window['_SERVER_'].print("s> > MESSAGE" + "0" + " FROM " + "alias" + message_total + "END")
 
                 # message1, message2 = message.split('\0')
                 # print(f"Received message: {message1}")
@@ -392,6 +393,7 @@ class client :
         # if client._keep_running == False:
         #     sock.close()
 
+    
                 
 
     @staticmethod

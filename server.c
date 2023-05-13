@@ -43,13 +43,16 @@ int sendMessage(int socket, char *buffer, int len)
 
 int envio_mensajes_pendientes(char *alias, char *IP, int port) {
     struct hostent *hp;
+    char send_message[MAXSIZE] = "";
+    strcat(send_message, "SEND_MESSAGE");
+
     int contador = obtener_mensajes(alias);
-    dprintf(2, "EL NUMERO DE MENSAJES ES %d\n", contador);
-    // EXTRAER A UNA FUNCION
+
     //obtener tods los mensajes pendientes y enviarlos
     char **cadena_pendientes = extraerMensajes(alias, contador);
     for (int i = 0; i < contador; i++) {
-        printf("SENDING.... %s\n", cadena_pendientes[i]);
+        
+        //Se crea un socket por cada conexión
         int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
         if (socket_thread == -1) {
             perror("Error al crear el socket\n");
@@ -70,6 +73,28 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port) {
             return 3; //MIRAAAAR
         }
 
+        // ************ SEND_MESSAGE ************
+        // if (sendMessage(socket_thread, send_message, strlen(send_message)+1) < 0)
+        // {
+        //     perror("write: ");
+        //     return 3;
+        // }
+
+        // // ************ ALIAS ************
+        // if (sendMessage(socket_thread, alias, strlen(alias)+1) < 0)
+        // {
+        //     perror("write: ");
+        //     return 3;
+        // }
+
+        // // ************ ID ************
+        // if (sendMessage(socket_thread, alias, strlen(alias)+1) < 0)
+        // {
+        //     perror("write: ");
+        //     return 3;
+        // }
+        
+        // ************ ENVIAR MENSAJE ************
         if (sendMessage(socket_thread, cadena_pendientes[i], strlen(cadena_pendientes[i])+1) < 0)
         {
             perror("write: ");
