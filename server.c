@@ -10,9 +10,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <errno.h>
 #include "gestiones.h"
 #include "comunicacion.h"
-#include <errno.h>
+#include "funciones_server.h"
+#include "leer_campos.h"
+
+
 
 #define MAXSIZE 1024
 
@@ -25,28 +29,12 @@ pthread_mutex_t mutex_mensaje;
 int mensaje_no_copiado;
 pthread_cond_t cond_mensaje;
 
-int sendMessage(int socket, char *buffer, int len)
-{
-    int r;
-    int l = len;
-    do { 
-        r = write(socket, buffer, l);
-        l = l - r;
-        buffer = buffer + r;
-    } while ((l>0) && (r>=0));
-
-    if (r < 0)
-        return (-1); /* fallo */
-    else 
-        return(0); /* se ha enviado longitud */
-}
-
 int envio_mensajes_pendientes(char *alias, char *IP, int port) {
     struct hostent *hp;
     char send_message[MAXSIZE] = "";
     strcat(send_message, "SEND_MESSAGE");
 
-    int contador = obtener_mensajes(alias);
+    int contador = num_mensajes_pendientes(alias);
 
     //obtener tods los mensajes pendientes y enviarlos
     char **cadena_pendientes = extraerMensajes(alias, contador);
@@ -115,48 +103,6 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port) {
 
 }
 
-ssize_t readLine(int fd, void *buffer, size_t n)
-{
-	ssize_t numRead;  /* num of bytes fetched by last read() */
-	size_t totRead;	  /* total bytes read so far */
-	char *buf;
-	char ch;
-	if (n <= 0 || buffer == NULL) { 
-		errno = EINVAL;
-		return -1; 
-	}
-
-	buf = buffer;
-	totRead = 0;
-	
-	for (;;) {
-        	numRead = read(fd, &ch, 1);	/* read a byte */
-        	if (numRead == -1) {	
-            		if (errno == EINTR)	/* interrupted -> restart read() */
-                		continue;
-            	else
-			return -1;		/* some other error */
-        	} else if (numRead == 0) {	/* EOF */
-            		if (totRead == 0)	/* no byres read; return 0 */
-                		return 0;
-			else
-                		break;
-        	} else {			/* numRead must be 1 if we get here*/
-            		if (ch == '\n')
-                		break;
-            		if (ch == '\0')
-                		break;
-            		if (totRead < n - 1) {		/* discard > (n-1) bytes */
-				totRead++;
-				*buf++ = ch; 
-			}
-		} 
-	}
-	*buf = '\0';
-    	return totRead;
-}
-
-
 
 int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, char *message) {
    
@@ -164,44 +110,27 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
     char alias [MAXSIZE];
     char date [MAXSIZE];
     char c_op[MAXSIZE];
+    int res = 0;
 
     // *********** OPERATION CODE ***********
     if (readLine(sd_client, (char*) &c_op, MAXSIZE) < 0) {
         perror("Error al leer la respuesta");
-        return -1;
+        res = 3;
     }
 
-    dprintf(2, "cop: %s\n", c_op);
-
-    // **************************************
     // ************** REGISTER **************
-    // **************************************
     if (strcmp(c_op, "REGISTER")==0)
     {
         // *********** USERNAME ***********
-
-        if (readLine(sd_client, (char*) username, MAXSIZE) < 0) {
-            perror("Error al leer el username");
-            return -1;
-        }
-
+        res = read_username(sd_client, username);
         dprintf(2, "username: %s\n", username);
         
-        // ********** ALIAS ***********
-        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
-            perror("Error al leer el alias");
-            return -1;
-        }
-
+        // ********** ALIAS ***********    
+        res = read_alias(sd_client, alias);
         dprintf(2, "alias: %s\n", alias);
 
         //     *********** DATE ***********
-        // date = malloc(len_date + 1);
-        if (readLine(sd_client, (char*) date, MAXSIZE) < 0) {
-            perror("Error al leer la fecha");
-            return -1;
-        }
-
+        res = read_date(sd_client, date);
         dprintf(2, "date: %s\n", date);
 
          // Reserva de memoria
@@ -222,10 +151,9 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
     // **************************************
     } else if (strcmp(c_op, "UNREGISTER")==0) {
         // ********** ALIAS ***********
-        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
-            perror("Error al leer el alias");
-            return -1;
-        }
+
+        res = read_alias(sd_client, alias);
+
         perfil->alias = malloc(MAXSIZE);
         perfil->c_op = malloc(MAXSIZE);
 
@@ -248,15 +176,10 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
         inet_ntop(AF_INET, &(address_thread.sin_addr), ipstr, INET_ADDRSTRLEN);
 
         // ********** ALIAS ***********
-        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
-            perror("Error al leer el alias");
-            return -1;
-        }
+
+        res = read_alias(sd_client, alias);
         // ********** PUERTO ***********
-        if (readLine(sd_client, (char*) port, MAXSIZE) < 0) {
-            perror("Error al leer el sd_client");
-            return -1;
-        }
+        res = read_port(sd_client, port);
         
         // Reserva de memoria
         perfil->alias = malloc(MAXSIZE);
@@ -274,10 +197,8 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
     } else if (strcmp(c_op, "DISCONNECT")==0){
 
          // ********** ALIAS ***********
-        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
-            perror("Error al leer el sd_client");
-            return -1;
-        }
+
+        res = read_alias(sd_client, alias);
 
         perfil->alias = malloc(MAXSIZE);
         perfil->c_op = malloc(MAXSIZE);
@@ -289,60 +210,37 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
     // ************** SEND **************
     // **************************************
     } else if (strcmp(c_op, "SEND") == 0) { 
-        dprintf(2, "Acabo de recibir send\n");
         // ********** ALIAS USER ***********
-        if (readLine(sd_client, (char*) alias, MAXSIZE) < 0) {
-            perror("Error al leer el sd_client");
-            return -1;
-        }
-        dprintf(2, "Haciendo ilegalidades con ALIAS DEST en send\n");
+        res = read_alias(sd_client, alias);
 
         // ********** ALIAS DEST ***********
-        if (readLine(sd_client, (char*) alias_dest, MAXSIZE) < 0) {
-            perror("Error al leer el sd_client");
-            return -1;
-        }
-        // if (!*alias_dest || **alias_dest == '\0') {
-        //     fprintf(stderr, "Error: alias_dest vacío\n");
-        //     return -1;
-        // }
-        dprintf(2, "vALOR DEST EN send ES %s\n", alias_dest);
-        dprintf(2, "Haciendo ilegalidades con MESSAGE en send\n");
+        res = read_alias(sd_client, alias_dest);
 
         // ********** MESSAGE ***********
-        if (readLine(sd_client, (char*) message, MAXSIZE) < 0) {
-            perror("Error al leer el sd_client");
-            return -1;
-        }
-        // if (!*message || **message == '\0') {
-        //     fprintf(stderr, "Error: mensaje vacío\n");
-        //     return -1;
-        // }
+        res = read_message(sd_client, message);
 
         // Reserva de memoria
         perfil->c_op = malloc(MAXSIZE);
         perfil->IP = malloc(MAXSIZE);
     
-
         strcpy(perfil->c_op, c_op);
         strcpy(perfil->alias, alias);
         dprintf(2, "Finalizo send\n");
 
 }
 
-
-    return 0;
+    return res;
 }
 
 void tratar_mensaje(void *sd_client_tratar) 
-{   
-    //struct perfil mensaje;	                    //mensaje local 		
-    struct respuesta respuesta;	                //respuesta a la petición          
-    int resultado;		                        // resultado de la operación 
+{   		
+    struct respuesta respuesta;	    //respuesta a la petición          
+    int resultado;		            // resultado de la operación 
     int sd_client;
     struct perfil perfil;
     char IP[MAXSIZE];
     int port;
+
     // Para el posible envío de mensajes
     char alias_dest[MAXSIZE];
     char message[MAXSIZE];
@@ -367,13 +265,12 @@ void tratar_mensaje(void *sd_client_tratar)
         resultado = unregister_gestiones(perfil);
         
     } else if (strcmp(perfil.c_op, "CONNECT") == 0) {
-        dprintf(2, "\n********** CONNECT ************* \n");
-
         resultado = connect_gestiones(perfil);
 
         //Comprobamos si tiene mensajes pendientes y si es así se los enviamos
         int connected = is_connected(perfil.alias, &port, IP);
-        if (connected == 0 && obtener_mensajes(perfil.alias) > 0) {
+        if (connected == 0 && num_mensajes_pendientes(perfil.alias) > 0) 
+        {
             resultado = envio_mensajes_pendientes(perfil.alias, IP, port);
             
         }
@@ -382,13 +279,12 @@ void tratar_mensaje(void *sd_client_tratar)
         resultado = disconnect_gestiones(perfil);
         
     } else if (strcmp(perfil.c_op, "SEND") == 0) {
-
-
         
         resultado = send_to_server_gestiones(perfil, alias_dest, message);
         int connected = is_connected(alias_dest, &port, IP);
-
-        if (connected == 0 && obtener_mensajes(alias_dest) > 0) {
+        
+        // Enviar mensajes
+        if (connected == 0 && num_mensajes_pendientes(alias_dest) > 0) {
             resultado = envio_mensajes_pendientes(alias_dest, IP, port); 
         }
         
@@ -400,7 +296,6 @@ void tratar_mensaje(void *sd_client_tratar)
     }
 
     respuesta.code_error = resultado;
-    dprintf(2, "Respuesta: %d\n", respuesta.code_error);
     
     // Traducción de la respuesta a formato de red
     respuesta.code_error = htonl(respuesta.code_error);
@@ -457,7 +352,6 @@ int main(int argc, char *argv[]){
          perror("setsockopt: ");
          return -1;
      }
-
 
     // bind + listen
      address.sin_family      = AF_INET ;

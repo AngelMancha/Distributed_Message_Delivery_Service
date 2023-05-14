@@ -131,16 +131,6 @@ int connect_gestiones(struct perfil perfil)
     perfil.c_op = perfil_antiguo.c_op;
     perfil.status = "Conectado";
 
-
-
-    dprintf(2, "perfil_original.status: %s\n", perfil.status);
-    dprintf(2, "perfil.alias: %s\n", perfil.alias);
-    dprintf(2, "perfil.nombre: %s\n", perfil.nombre);
-    dprintf(2, "perfil.fecha: %s\n", perfil.fecha);
-    dprintf(2, "perfil.c_op: %s\n", perfil.c_op);
-    dprintf(2, "perfil.status: %s\n", perfil.status);
-    dprintf(2, "perfil.IP: %s\n", perfil.IP);
-    dprintf(2, "perfil.port: %d\n", perfil.port);
     // Mover el puntero de posición al inicio del archivo
     fseek(archivo, 0, SEEK_SET);
 
@@ -198,16 +188,6 @@ int disconnect_gestiones(struct perfil perfil)
     perfil.c_op = perfil_antiguo.c_op;
     perfil.status = "Desconectado";
 
-
-
-    dprintf(2, "perfil_original.status: %s\n", perfil.status);
-    dprintf(2, "perfil.alias: %s\n", perfil.alias);
-    dprintf(2, "perfil.nombre: %s\n", perfil.nombre);
-    dprintf(2, "perfil.fecha: %s\n", perfil.fecha);
-    dprintf(2, "perfil.c_op: %s\n", perfil.c_op);
-    dprintf(2, "perfil.status: %s\n", perfil.status);
-    dprintf(2, "perfil.IP: %s\n", perfil.IP);
-    dprintf(2, "perfil.port: %d\n", perfil.port);
     // Mover el puntero de posición al inicio del archivo
     fseek(archivo, 0, SEEK_SET);
 
@@ -222,7 +202,7 @@ int disconnect_gestiones(struct perfil perfil)
 
 int is_connected(char* destinatario, int * port, char *IP)
 {   
-    dprintf(2, "ESTOY  DENTRO DE ISCONNECTED\n");
+
     char nombre_fichero[50];
 
     sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, formato_fichero);
@@ -246,8 +226,6 @@ int is_connected(char* destinatario, int * port, char *IP)
         perror("El usuario no está conectado");
         return 1;
     }
-    dprintf(2, "\n\n *************IS_CONNECTED*************\n\n");
-    dprintf(2, "Puerto: %d\n IP: %s\n", perfil.port, perfil.IP);
 
     *port = perfil.port;
     strcpy(IP,perfil.IP);
@@ -305,11 +283,9 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     // Mover el puntero de posición al final del archivo
     fseek(archivo, 0, SEEK_END);
 
-
-
     //se crea el mensaje nuevo y se añade al array de mensajes pendientes del destinatario
     
-    num_mensajes = obtener_mensajes(perfil.alias);
+    num_mensajes = num_mensajes_pendientes(perfil.alias);
     if (num_mensajes == 0) {
         ultimo_id = -1;
     }
@@ -324,9 +300,6 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
 
     fwrite(&mensaje_nuevo, sizeof(struct mensaje), 1, archivo);
 
-    dprintf(2, "Calculando num de msjs\n");
-
-
     fclose(archivo);
 
 
@@ -336,7 +309,7 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
 
 
 
-int obtener_mensajes(char *destinatario){
+int num_mensajes_pendientes(char *destinatario){
     char nombre_fichero[50];
     sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, extension_mensajes);
 
@@ -392,5 +365,8 @@ char **extraerMensajes(char *destinatario, int numMensajes) {
     // eliminar contenido
     FILE *fp_remove = fopen(nombre_fichero, "wb");
     fclose(fp_remove);
+
+    // y devuelve un puntero a un puntero a puntero que apunta a un array de strings donde
+    // están los mensjaes del destinatario
     return mensajes;
 }
