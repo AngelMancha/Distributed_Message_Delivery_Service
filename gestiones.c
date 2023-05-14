@@ -296,7 +296,7 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     mensaje_nuevo.id = ultimo_id + 1;
     strcpy(mensaje_nuevo.mensaje, mensaje);
     strcpy(mensaje_nuevo.remitente, perfil.alias);
-
+    
 
     fwrite(&mensaje_nuevo, sizeof(struct mensaje), 1, archivo);
 
@@ -361,7 +361,7 @@ char **extraerMensajes(char *destinatario, int numMensajes) {
         strcpy(mensajes[i], mensaje.mensaje);
     }
     fclose(fp);
-
+    
     // eliminar contenido
     FILE *fp_remove = fopen(nombre_fichero, "wb");
     fclose(fp_remove);

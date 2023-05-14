@@ -229,8 +229,12 @@ void tratar_mensaje(void *sd_client_tratar)
         if (connected == 0 && num_mensajes_pendientes(perfil.alias) > 0) 
         {
             resultado = envio_mensajes_pendientes(perfil.alias, IP, port);
-            
+
         }
+
+       
+
+
         // liberar memoria
 
 
@@ -246,8 +250,47 @@ void tratar_mensaje(void *sd_client_tratar)
 
         // Enviar mensajes
         if (connected == 0 && num_mensajes_pendientes(alias_dest) > 0) {
-            resultado = envio_mensajes_pendientes(alias_dest, IP, port); 
+            resultado = envio_mensajes_pendientes(alias_dest, IP, port);
+            
+            int port_remitente;
+            char IP_remitente[MAXSIZE];
+            struct hostent *hp;
+            char send_message[MAXSIZE] = "";
+            is_connected(perfil.alias, &port_remitente, IP_remitente);
+            
+            //Se crea un socket por cada conexión
+            int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
+            if (socket_thread == -1) {
+                perror("Error al crear el socket\n");
+                resultado = 3; //MIRAAAAR
+            }
+            struct sockaddr_in thread_addr;
+            hp = gethostbyname(IP_remitente);
+            memcpy(&(thread_addr.sin_addr), hp->h_addr, hp->h_length);
+
+            thread_addr.sin_family = AF_INET;
+            thread_addr.sin_port = htons(port_remitente);
+            printf(">>>>>>> %d\n", thread_addr.sin_port) ;
+            
+            
+            int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));
+            if (cod < 0) {
+                perror("Error al conectar con el servidor del hilo del remitente\n");
+                resultado = 3; //MIRAAAAR
+            }
+
+            // ************ SEND_MESSAGE_ACK ************
+            strcat(send_message, "SEND_MESS_ACK");
+            if (sendMessage(socket_thread, send_message, strlen(send_message)+1) < 0)
+            {
+                perror("write: ");
+                resultado = 3;
+            }
+            close(socket_thread);
         }
+
+        
+
         // liberar memoria
 
 

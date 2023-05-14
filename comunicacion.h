@@ -13,6 +13,7 @@ struct perfil {
     char *IP;
     int port;
     struct mensaje *mensajes;
+    int num_mensajes_recibidos;
 };
 
 
@@ -24,7 +25,7 @@ struct mensaje{
     char mensaje[MAXSIZE];
     unsigned int id;
     char remitente[MAXSIZE];
-    // STATUS: PENDING/SEND
+    //int status; //1 pending y 0 read
 };
 
 

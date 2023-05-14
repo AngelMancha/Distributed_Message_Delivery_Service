@@ -27,6 +27,7 @@ class client :
     _alias: str = None
     _date: str = None
     _keep_running = None
+    _dest = None
 
     # ******************** METHODS *******************
     # *
@@ -301,8 +302,9 @@ class client :
             sock.sendall(client._alias.encode("utf-8"))
             sock.sendall(b'\0')    
             
+            client._dest = user
             ############ ALIAS DEST  ############
-            sock.sendall(user.encode("utf-8"))
+            sock.sendall(client._dest.encode("utf-8"))
             sock.sendall(b'\0')    
             
             ############ MESSAGE ############
@@ -365,17 +367,21 @@ class client :
             try: 
                 print("Connection from", address)
                 server_send = client.readLine(connection)
-                print(f"Server connection {server_send}")
-                print('\nEmpezando a guardar mensaje...')
-                alias = client.readLine(connection)
-                print(f"alias {alias}")
-                id = client.readLine(connection)
-                print(f"id {id}")
-                message_total = client.readLine(connection)
-                print(f"mensaje {message_total}")
                 
-                
-                window['_SERVER_'].print(f"s> > MESSAGE {id} FROM {alias} {message_total} END")
+                if server_send == "SEND_MESS_ACK":
+                    id = 0
+                    window['_SERVER_'].print(f"s> > SEND MESSAGE {id} OK")
+                    window['_SERVER_'].print(f"s> > SEND MESSAGE {id} FROM {client._alias} TO {client._dest}")
+                elif server_send == "SEND_MESSAGE":
+                    print(f"Server connection {server_send}")
+                    print('\nEmpezando a guardar mensaje...')
+                    alias = client.readLine(connection)
+                    print(f"alias {alias}")
+                    id = client.readLine(connection)
+                    print(f"id {id}")
+                    message_total = client.readLine(connection)
+                    print(f"mensaje {message_total}")
+                    window['_SERVER_'].print(f"s> > MESSAGE {id} FROM {alias} {message_total} END")
                 #window['_SERVER_'].print("s> > MESSAGE " + str(id) + " FROM " + alias + " " + message_total + "END")
 
                 # message1, message2 = message.split('\0')
