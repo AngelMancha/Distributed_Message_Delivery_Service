@@ -24,6 +24,7 @@ struct mensaje{
     char mensaje[MAXSIZE];
     unsigned int id;
     char remitente[MAXSIZE];
+    // STATUS: PENDING/SEND
 };
 
 

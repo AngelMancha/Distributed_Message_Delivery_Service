@@ -13,8 +13,8 @@
 #include <errno.h>
 #include "comunicacion.h"
 
-int read_username(int sd, char *username);
+int read_username(int sd, char *username, struct perfil *perfil);
 int read_alias(int sd_client, char *alias);
-int read_date(int sd, char *date);
+int read_date(int sd, char *date, struct perfil *perfil);
 int read_port(int sd, char * port);
 int read_message(int sd, char *message);

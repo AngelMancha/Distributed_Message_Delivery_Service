@@ -326,7 +326,7 @@ class client :
             window['_SERVER_'].print("s> SEND FAIL / USER DOES NOT EXIST")
             return client.RC.USER_ERROR
         if result == 2:
-            window['_SERVER_'].print("s> DISCONNECT FAIL / USER NOT CONNECTED")
+            window['_SERVER_'].print("s> SEND FAIL")
             return client.RC.USER_ERROR
         return client.RC.ERROR 
     
@@ -373,6 +373,7 @@ class client :
                 print(f"id {id}")
                 message_total = client.readLine(connection)
                 print(f"mensaje {message_total}")
+                
                 
                 window['_SERVER_'].print(f"s> > MESSAGE {id} FROM {alias} {message_total} END")
                 #window['_SERVER_'].print("s> > MESSAGE " + str(id) + " FROM " + alias + " " + message_total + "END")

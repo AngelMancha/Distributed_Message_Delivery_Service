@@ -75,7 +75,7 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port) {
             return 3;
         }
 
-        // // ************ ID ************
+        // // ************ ALIAS ************
         char *id = malloc(sizeof(int));
         sprintf(id, "%d", i);
         if (sendMessage(socket_thread, id, strlen(id)+1) < 0)
@@ -118,115 +118,69 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
         res = 3;
     }
 
+    perfil->c_op = malloc(MAXSIZE);
+    strcpy(perfil->c_op, c_op);
+
     // ************** REGISTER **************
     if (strcmp(c_op, "REGISTER")==0)
     {
-        // *********** USERNAME ***********
-        res = read_username(sd_client, username);
-        dprintf(2, "username: %s\n", username);
-        
-        // ********** ALIAS ***********    
+        res = read_username(sd_client, username, perfil);
         res = read_alias(sd_client, alias);
-        dprintf(2, "alias: %s\n", alias);
-
-        //     *********** DATE ***********
-        res = read_date(sd_client, date);
-        dprintf(2, "date: %s\n", date);
+        res = read_date(sd_client, date, perfil);
 
          // Reserva de memoria
-        perfil->nombre = malloc(MAXSIZE);
         perfil->alias = malloc(MAXSIZE);
-        perfil->fecha = malloc(MAXSIZE);
-        perfil->c_op = malloc(MAXSIZE);
-        
-
-        //se rellena la estructura de la petición
-        strcpy(perfil->nombre, username);
         strcpy(perfil->alias, alias);
-        strcpy(perfil->fecha, date);
-        strcpy(perfil->c_op, c_op);
-    
-    // **************************************
+
     // ************* UNREGISTER *************
-    // **************************************
     } else if (strcmp(c_op, "UNREGISTER")==0) {
-        // ********** ALIAS ***********
 
         res = read_alias(sd_client, alias);
-
         perfil->alias = malloc(MAXSIZE);
-        perfil->c_op = malloc(MAXSIZE);
-
-        strcpy(perfil->c_op, c_op);
         strcpy(perfil->alias, alias);
 
-    // **************************************
+
     // ************** CONNECT **************
-    // **************************************
     } else if (strcmp(c_op, "CONNECT")==0) {
 
         char port[MAXSIZE];
 
         getpeername(sd_client, (struct sockaddr *)&address_thread, &addrlen_thread);
-       // getpeername(sockfd, (struct sockaddr *)&addr, &len);
-
-
         char ipstr[INET_ADDRSTRLEN]; // pasar la ip a un formato legible
-
         inet_ntop(AF_INET, &(address_thread.sin_addr), ipstr, INET_ADDRSTRLEN);
 
-        // ********** ALIAS ***********
-
         res = read_alias(sd_client, alias);
-        // ********** PUERTO ***********
         res = read_port(sd_client, port);
         
         // Reserva de memoria
         perfil->alias = malloc(MAXSIZE);
-        perfil->c_op = malloc(MAXSIZE);
         perfil->IP = malloc(MAXSIZE);
-
-        strcpy(perfil->c_op, c_op);
         strcpy(perfil->alias, alias);
         perfil->port = atoi(port);
         strcpy(perfil->IP, ipstr);
 
-    // **************************************
+
     // ************** DISCONNECT ************
-    // **************************************
     } else if (strcmp(c_op, "DISCONNECT")==0){
 
-         // ********** ALIAS ***********
-
         res = read_alias(sd_client, alias);
-
         perfil->alias = malloc(MAXSIZE);
-        perfil->c_op = malloc(MAXSIZE);
-
-        strcpy(perfil->c_op, c_op);
         strcpy(perfil->alias, alias);
 
-    // **************************************
+
     // ************** SEND **************
-    // **************************************
     } else if (strcmp(c_op, "SEND") == 0) { 
+
         // ********** ALIAS USER ***********
         res = read_alias(sd_client, alias);
-
         // ********** ALIAS DEST ***********
         res = read_alias(sd_client, alias_dest);
-
         // ********** MESSAGE ***********
         res = read_message(sd_client, message);
 
         // Reserva de memoria
-        perfil->c_op = malloc(MAXSIZE);
         perfil->IP = malloc(MAXSIZE);
-    
-        strcpy(perfil->c_op, c_op);
         strcpy(perfil->alias, alias);
-        dprintf(2, "Finalizo send\n");
-
 }
 
     return res;
@@ -259,10 +213,13 @@ void tratar_mensaje(void *sd_client_tratar)
         perfil.status = "Desconectado";
         perfil.port = 0;
         resultado = register_gestiones(perfil);
+        // liberar memoria
         
     
     } else if (strcmp(perfil.c_op, "UNREGISTER") == 0) {
         resultado = unregister_gestiones(perfil);
+        // liberar memoria
+
         
     } else if (strcmp(perfil.c_op, "CONNECT") == 0) {
         resultado = connect_gestiones(perfil);
@@ -274,22 +231,26 @@ void tratar_mensaje(void *sd_client_tratar)
             resultado = envio_mensajes_pendientes(perfil.alias, IP, port);
             
         }
+        // liberar memoria
+
 
     }else if (strcmp(perfil.c_op, "DISCONNECT")==0){
         resultado = disconnect_gestiones(perfil);
+        // liberar memoria
+
         
     } else if (strcmp(perfil.c_op, "SEND") == 0) {
         
         resultado = send_to_server_gestiones(perfil, alias_dest, message);
         int connected = is_connected(alias_dest, &port, IP);
-        
+
         // Enviar mensajes
         if (connected == 0 && num_mensajes_pendientes(alias_dest) > 0) {
             resultado = envio_mensajes_pendientes(alias_dest, IP, port); 
         }
-        
+        // liberar memoria
 
-        
+
     } else {
         printf("Error: código de operación no válido.\n");
         exit(-1);
