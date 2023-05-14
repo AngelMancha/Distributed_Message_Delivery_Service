@@ -74,25 +74,28 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port) {
         }
 
         // ************ SEND_MESSAGE ************
-        // if (sendMessage(socket_thread, send_message, strlen(send_message)+1) < 0)
-        // {
-        //     perror("write: ");
-        //     return 3;
-        // }
+        if (sendMessage(socket_thread, send_message, strlen(send_message)+1) < 0)
+        {
+            perror("write: ");
+            return 3;
+        }
 
         // // ************ ALIAS ************
-        // if (sendMessage(socket_thread, alias, strlen(alias)+1) < 0)
-        // {
-        //     perror("write: ");
-        //     return 3;
-        // }
+        if (sendMessage(socket_thread, alias, strlen(alias)+1) < 0)
+        {
+            perror("write: ");
+            return 3;
+        }
 
         // // ************ ID ************
-        // if (sendMessage(socket_thread, alias, strlen(alias)+1) < 0)
-        // {
-        //     perror("write: ");
-        //     return 3;
-        // }
+        char *id = malloc(sizeof(int));
+        sprintf(id, "%d", i);
+        if (sendMessage(socket_thread, id, strlen(id)+1) < 0)
+        {
+            perror("write: ");
+            return 3;
+        }
+        free(id);
         
         // ************ ENVIAR MENSAJE ************
         if (sendMessage(socket_thread, cadena_pendientes[i], strlen(cadena_pendientes[i])+1) < 0)

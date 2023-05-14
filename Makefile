@@ -11,3 +11,4 @@ server: $(SERVER) gestiones.c
 
 clean:
 	rm -f server
+	rm ./DDBB/*

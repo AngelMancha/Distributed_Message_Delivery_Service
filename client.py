@@ -364,21 +364,18 @@ class client :
             connection, address = sock.accept() 
             try: 
                 print("Connection from", address)
+                server_send = client.readLine(connection)
+                print(f"Server connection {server_send}")
                 print('\nEmpezando a guardar mensaje...')
-                message_total = ''
-                while True:
-                    message = connection.recv(1).decode('utf-8')
-                    print(f"Recibiendo mensaje: {message}")
-                    if message == '\0':
-                        break
-                    message_total += message
-                    #     message_total = message_total
-                    #message= connection.recv(1024).decode("utf-8")
-                    # message = connection.recv(1024).decode('utf-8')
-                    #print(f"Received message: {message}")
-                    # message2 = connection.recv(1024).decode('utf-8')
-                    print(f"Received message: {message_total}")
-                window['_SERVER_'].print("s> > MESSAGE" + "0" + " FROM " + "alias" + message_total + "END")
+                alias = client.readLine(connection)
+                print(f"alias {alias}")
+                id = client.readLine(connection)
+                print(f"id {id}")
+                message_total = client.readLine(connection)
+                print(f"mensaje {message_total}")
+                
+                window['_SERVER_'].print(f"s> > MESSAGE {id} FROM {alias} {message_total} END")
+                #window['_SERVER_'].print("s> > MESSAGE " + str(id) + " FROM " + alias + " " + message_total + "END")
 
                 # message1, message2 = message.split('\0')
                 # print(f"Received message: {message1}")
@@ -394,6 +391,18 @@ class client :
         #     sock.close()
 
     
+    @staticmethod
+    def readLine(connection):
+        message_total = ''
+        while True:
+            message = connection.recv(1).decode('utf-8')
+            print(f"Recibiendo mensaje: {message}")
+            if message == '\0':
+                break
+            message_total += message
+            
+            print(f"Received message: {message_total}")
+        return message_total
                 
 
     @staticmethod
