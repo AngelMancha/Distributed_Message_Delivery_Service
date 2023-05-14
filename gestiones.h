@@ -10,3 +10,4 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
 int is_connected(char* destinatario, int * port, char *IP);
 int num_mensajes_pendientes(char *destinatario);
 char **extraerMensajes(char *destinatario, int numMensajes);
+char **extraerRemitentes(char *destinatario, int numMensajes);

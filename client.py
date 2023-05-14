@@ -371,7 +371,7 @@ class client :
                 if server_send == "SEND_MESS_ACK":
                     id = 0
                     window['_SERVER_'].print(f"s> > SEND MESSAGE {id} OK")
-                    window['_SERVER_'].print(f"s> > SEND MESSAGE {id} FROM {client._alias} TO {client._dest}")
+                    #window['_SERVER_'].print(f"s> > SEND MESSAGE {id} FROM {client._alias} TO {client._dest}")
                 elif server_send == "SEND_MESSAGE":
                     print(f"Server connection {server_send}")
                     print('\nEmpezando a guardar mensaje...')

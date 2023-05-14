@@ -370,3 +370,40 @@ char **extraerMensajes(char *destinatario, int numMensajes) {
     // están los mensjaes del destinatario
     return mensajes;
 }
+
+
+char **extraerRemitentes(char *destinatario, int numMensajes) {
+
+    char nombre_fichero[50];
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, extension_mensajes);
+
+    FILE *fp = fopen(nombre_fichero, "rb");
+    if (fp == NULL) {
+        printf("Error al abrir el archivo");
+        exit(1);
+    }
+
+    // Crear un array de strings para almacenar los mensajes
+    char **remitentes = malloc(numMensajes * sizeof(char *));
+    if (remitentes == NULL) {
+        printf("Error al asignar memoria");
+        exit(1);
+    }
+    
+    // Leer cada estructura y extraer el campo "mensaje"
+    struct mensaje mensaje;
+    for (int i = 0; i < numMensajes; i++) {
+        fread(&mensaje, sizeof(struct mensaje), 1, fp);
+        remitentes[i] = malloc(strlen(mensaje.remitente) + 1);
+        if (remitentes[i] == NULL) {
+            printf("Error al asignar memoria");
+            exit(1);
+        }
+        strcpy(remitentes[i], mensaje.remitente);
+    }
+    fclose(fp);
+    
+    // y devuelve un puntero a un puntero a puntero que apunta a un array de strings donde
+    // están los mensjaes del destinatario
+    return remitentes;
+}

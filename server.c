@@ -29,7 +29,8 @@ pthread_mutex_t mutex_mensaje;
 int mensaje_no_copiado;
 pthread_cond_t cond_mensaje;
 
-int envio_mensajes_pendientes(char *alias, char *IP, int port) {
+int envio_mensajes_pendientes(char *alias, char *IP, int port, char *alias_remitente) {
+    alias_remitente = alias_remitente;
     struct hostent *hp;
     char send_message[MAXSIZE] = "";
     strcat(send_message, "SEND_MESSAGE");
@@ -37,7 +38,9 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port) {
     int contador = num_mensajes_pendientes(alias);
 
     //obtener tods los mensajes pendientes y enviarlos
+    char **remitentes_pendientes = extraerRemitentes(alias, contador);
     char **cadena_pendientes = extraerMensajes(alias, contador);
+ 
     for (int i = 0; i < contador; i++) {
         
         //Se crea un socket por cada conexión
@@ -69,13 +72,13 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port) {
         }
 
         // // ************ ALIAS ************
-        if (sendMessage(socket_thread, alias, strlen(alias)+1) < 0)
+        if (sendMessage(socket_thread, remitentes_pendientes[i], strlen(remitentes_pendientes[i])+1) < 0)
         {
             perror("write: ");
             return 3;
         }
-
-        // // ************ ALIAS ************
+        free(remitentes_pendientes[i]);
+        // // ************ ID ************
         char *id = malloc(sizeof(int));
         sprintf(id, "%d", i);
         if (sendMessage(socket_thread, id, strlen(id)+1) < 0)
@@ -228,7 +231,7 @@ void tratar_mensaje(void *sd_client_tratar)
         int connected = is_connected(perfil.alias, &port, IP);
         if (connected == 0 && num_mensajes_pendientes(perfil.alias) > 0) 
         {
-            resultado = envio_mensajes_pendientes(perfil.alias, IP, port);
+            resultado = envio_mensajes_pendientes(perfil.alias, IP, port, perfil.alias);
 
         }
 
@@ -250,7 +253,7 @@ void tratar_mensaje(void *sd_client_tratar)
 
         // Enviar mensajes
         if (connected == 0 && num_mensajes_pendientes(alias_dest) > 0) {
-            resultado = envio_mensajes_pendientes(alias_dest, IP, port);
+            resultado = envio_mensajes_pendientes(alias_dest, IP, port, perfil.alias);
             
             int port_remitente;
             char IP_remitente[MAXSIZE];
@@ -277,7 +280,7 @@ void tratar_mensaje(void *sd_client_tratar)
             if (cod < 0) {
                 perror("Error al conectar con el servidor del hilo del remitente\n");
                 resultado = 3; //MIRAAAAR
-            }
+            } 
 
             // ************ SEND_MESSAGE_ACK ************
             strcat(send_message, "SEND_MESS_ACK");
