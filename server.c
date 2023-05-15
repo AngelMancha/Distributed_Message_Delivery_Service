@@ -57,7 +57,7 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port, char *alias_remit
 
         thread_addr.sin_family = AF_INET;
         thread_addr.sin_port = htons(port);
-        printf(">>>>>>> %d\n", thread_addr.sin_port) ;
+        //printf(">>>>>>> %d\n", thread_addr.sin_port) ;
         
         
         int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));
@@ -219,6 +219,7 @@ void tratar_mensaje(void *sd_client_tratar)
         perfil.status = "Desconectado";
         perfil.port = 0;
         resultado = register_gestiones(perfil);
+        
         // liberar memoria
         
     
@@ -248,16 +249,21 @@ void tratar_mensaje(void *sd_client_tratar)
         
     } else if (strcmp(perfil.c_op, "SEND") == 0) {
         
+        //se envían los mensajes al servidor y se actualiza la lista de mensajes pendientes del destinatario
         resultado = send_to_server_gestiones(perfil, alias_dest, message);
         int connected = is_connected(alias_dest, &port, IP);
 
+        
 
     
 
-        // Enviar mensajes
+        // Si una vez enviados al servidor, se comprueba que el destinatario está conectado,
+        //se le envían automáticametne
         if (connected == 0 && num_mensajes_pendientes(alias_dest) > 0) {
             resultado = envio_mensajes_pendientes(alias_dest, IP, port, perfil.alias);
             
+
+            //Se envía el ACK
             int port_remitente;
             char IP_remitente[MAXSIZE];
             struct hostent *hp;
@@ -276,7 +282,7 @@ void tratar_mensaje(void *sd_client_tratar)
 
             thread_addr.sin_family = AF_INET;
             thread_addr.sin_port = htons(port_remitente);
-            printf(">>>>>>> %d\n", thread_addr.sin_port) ;
+            //printf(">>>>>>> %d\n", thread_addr.sin_port) ;
             
             
             int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));
@@ -304,10 +310,12 @@ void tratar_mensaje(void *sd_client_tratar)
                 resultado = 3;
             }
 
-
+            dprintf(2, "SEND MESSAGE %s FROM %s TO %s\n", last_id_ack, perfil.alias, alias_dest);
             close(socket_thread);
+        }else{
+            // Se queda guarado en la lista de mensajes pendientes
+            dprintf(2, "SEND MESSAGE FROM %s TO %s STORED\n", perfil.alias, alias_dest);
         }
-
         
 
         // liberar memoria
@@ -331,7 +339,7 @@ void tratar_mensaje(void *sd_client_tratar)
 
     else
     {
-        printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
+        //printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
     }
 
     if (strcmp(perfil.c_op, "SEND") == 0) {
@@ -345,7 +353,7 @@ void tratar_mensaje(void *sd_client_tratar)
 
         else
         {
-        printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
+        //printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
         }
     }
     
@@ -426,7 +434,7 @@ int main(int argc, char *argv[]){
             return -1;
         }
 
-        dprintf(2, "Hola he llegado aqui 2\n");
+        //dprintf(2, "Hola he llegado aqui 2\n");
         if (pthread_create(&thid, &t_attr, (void *)tratar_mensaje, (void *)&sd_client) == 0) {
             // se espera a que el thread copie el mensaje 
 			pthread_mutex_lock(&mutex_mensaje);

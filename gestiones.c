@@ -41,7 +41,9 @@ int register_gestiones(struct perfil perfil){
         fclose(fichero_perfil);  
     } else 
     {
-        printf("Registro(): No se pudo abrir el archivo.\n");
+        perror("Registro(): No se pudo abrir el archivo.\n");
+        dprintf(2, "s> REGISTER %s FAIL\n", perfil.alias);
+        
         return 2;
     }
 
@@ -51,11 +53,12 @@ int register_gestiones(struct perfil perfil){
     } else 
     {
         printf("Registro(): No se pudo abrir el archivo.\n");
+        dprintf(2, "s> REGISTER %s FAIL\n", perfil.alias);
+
         return 2;
     }
 
-    printf("El usuario %s se ha registrado con éxito\n", perfil.alias);
-   
+    dprintf(2, "s> REGISTER %s OK\n", perfil.alias);
     return 0;
 }
 
@@ -70,6 +73,7 @@ int unregister_gestiones(struct perfil perfil)
     if (access(nombre_fichero, F_OK) != 0) 
     {
         perror("unregister_gestiones(): La clave no existe");
+        dprintf(2, "s> UNREGISTER %s FAIL\n", perfil.alias);
         return 1;
     }
     
@@ -77,12 +81,12 @@ int unregister_gestiones(struct perfil perfil)
     if (remove(nombre_fichero) != 0) 
     {
         perror("Ha ocurrido un error al dar de baja al usuario");
+        dprintf(2, "s> UNREGISTER %s FAIL\n", perfil.alias);
         return 2;
     } 
 
-    printf("Usuario %s dado de baja con éxito\n", perfil.alias);
 
-    
+    dprintf(2, "s> UNREGISTER %s OK\n", perfil.alias);
     return 0;
 
 }
@@ -102,6 +106,7 @@ int connect_gestiones(struct perfil perfil)
     if (access(nombre_fichero, F_OK) != 0) 
     {
         perror("modify_value(): El usuario no existe");
+        dprintf(2, "s> CONNECT %s FAIL\n", perfil.alias);
         return 1;
     }
 
@@ -111,6 +116,7 @@ int connect_gestiones(struct perfil perfil)
     if (archivo == NULL) 
     {
         perror("Modify_value_impl(): Error al abrir el archivo\n");
+        dprintf(2, "s> CONNECT %s FAIL\n", perfil.alias);
         return 3;
     }
 
@@ -123,6 +129,7 @@ int connect_gestiones(struct perfil perfil)
 
     if (strcmp(perfil_antiguo.status, "Conectado") == 0){
         perror("El usuario ya está conectado");
+        dprintf(2, "s> CONNECT %s FAIL\n", perfil.alias);
         return 2;
     }
     //modificar el registro 
@@ -141,7 +148,7 @@ int connect_gestiones(struct perfil perfil)
 
     fclose(archivo);
 
-
+    dprintf(2, "s> CONNECT %s OK\n", perfil.alias);
     return 0;
 }
 
@@ -160,6 +167,7 @@ int disconnect_gestiones(struct perfil perfil)
     if (access(nombre_fichero, F_OK) != 0) 
     {
         perror("modify_value(): El usuario no existe");
+        dprintf(2, "s> DISCONNECT %s FAIL\n", perfil.alias);
         return 1;
     }
 
@@ -169,6 +177,7 @@ int disconnect_gestiones(struct perfil perfil)
     if (archivo == NULL) 
     {
         perror("Modify_value_impl(): Error al abrir el archivo\n");
+        dprintf(2, "s> DISCONNECT %s FAIL\n", perfil.alias);
         return 3;
     }
 
@@ -180,7 +189,8 @@ int disconnect_gestiones(struct perfil perfil)
     fread(&perfil_antiguo, sizeof(struct perfil), 1, archivo);
 
     if (strcmp(perfil_antiguo.status, "Desconectado") == 0){
-        perror("El usuario no está conectado");
+        perror("El usuario ya está desconectado");
+        dprintf(2, "s> DISCONNECT %s FAIL\n", perfil.alias);
         return 2;
     }
     //modificar el registro 
@@ -199,7 +209,7 @@ int disconnect_gestiones(struct perfil perfil)
 
     fclose(archivo);
 
-
+    dprintf(2, "s> DISCONNECT %s OK\n", perfil.alias);
     return 0;
 }
 
@@ -226,7 +236,7 @@ int is_connected(char* destinatario, int * port, char *IP)
     fread(&perfil, sizeof(struct perfil), 1, archivo);
 
     if (strcmp(perfil.status, "Conectado") != 0){
-        perror("El usuario no está conectado");
+       
         return 1;
     }
 
@@ -239,11 +249,11 @@ int is_connected(char* destinatario, int * port, char *IP)
 int obtener_ultimo_id(char*alias) {
     char nombre_fichero_dest_perfil[50];
     struct perfil perfil_dest;
-    char nombre_fichero[50];
+    //char nombre_fichero[50];
     int last_id; 
 
     sprintf(nombre_fichero_dest_perfil, "%s%s%s", peticion_root, alias, formato_fichero);
-    dprintf(2, "El nombre del fichero es: %s\n", nombre_fichero);
+    //dprintf(2, "El nombre del fichero es: %s\n", nombre_fichero);
     // Comprobamos la existencia del usuario origen
     if (access(nombre_fichero_dest_perfil, F_OK) != 0) 
     {
@@ -317,7 +327,7 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     mensaje_nuevo.id = perfil_dest.last_id + 1;
     perfil_dest.last_id = perfil_dest.last_id + 1;
 
-    dprintf(2, "\n\n\n\n\nEL ID DEL MENSAJE ES: %d\n\n\n\n\n", mensaje_nuevo.id);
+    //dprintf(2, "\n\n\n\n\nEL ID DEL MENSAJE ES: %d\n\n\n\n\n", mensaje_nuevo.id);
 
     // Mover el puntero de posición al inicio del archivo
     fseek(archivo_perfil, 0, SEEK_SET);
@@ -509,7 +519,7 @@ int *extraerIDs(char *destinatario, int numMensajes) {
     struct mensaje mensaje;
     for (int i = 0; i < numMensajes; i++) {
         fread(&mensaje, sizeof(struct mensaje), 1, fp);
-        dprintf(2, "EL REMITENTE DEL MENSAJEEEEEEEEEEEE ES: %d\n", mensaje.id);
+        //dprintf(2, "EL REMITENTE DEL MENSAJEEEEEEEEEEEE ES: %d\n", mensaje.id);
         ids[i] = mensaje.id;
 
     }
