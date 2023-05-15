@@ -38,8 +38,10 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port, char *alias_remit
     int contador = num_mensajes_pendientes(alias);
 
     //obtener tods los mensajes pendientes y enviarlos
+    int *id_pendientes = extraerIDs(alias, contador);
     char **remitentes_pendientes = extraerRemitentes(alias, contador);
     char **cadena_pendientes = extraerMensajes(alias, contador);
+
  
     for (int i = 0; i < contador; i++) {
         
@@ -80,13 +82,14 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port, char *alias_remit
         free(remitentes_pendientes[i]);
         // // ************ ID ************
         char *id = malloc(sizeof(int));
-        sprintf(id, "%d", i);
+        sprintf(id, "%d", id_pendientes[i]);
+
         if (sendMessage(socket_thread, id, strlen(id)+1) < 0)
         {
             perror("write: ");
             return 3;
         }
-        free(id);
+        
         
         // ************ ENVIAR MENSAJE ************
         if (sendMessage(socket_thread, cadena_pendientes[i], strlen(cadena_pendientes[i])+1) < 0)
@@ -235,9 +238,6 @@ void tratar_mensaje(void *sd_client_tratar)
 
         }
 
-       
-
-
         // liberar memoria
 
 
@@ -250,6 +250,9 @@ void tratar_mensaje(void *sd_client_tratar)
         
         resultado = send_to_server_gestiones(perfil, alias_dest, message);
         int connected = is_connected(alias_dest, &port, IP);
+
+
+    
 
         // Enviar mensajes
         if (connected == 0 && num_mensajes_pendientes(alias_dest) > 0) {
@@ -289,6 +292,19 @@ void tratar_mensaje(void *sd_client_tratar)
                 perror("write: ");
                 resultado = 3;
             }
+            // ************ ID_ACK ************
+
+            int id_ack = obtener_ultimo_id(alias_dest);
+            char *last_id_ack = malloc(sizeof(int));
+            sprintf(last_id_ack, "%d", id_ack);
+
+            if (sendMessage(socket_thread, last_id_ack, strlen(last_id_ack)+1) < 0)
+            {
+                perror("write: ");
+                resultado = 3;
+            }
+
+
             close(socket_thread);
         }
 
@@ -316,6 +332,21 @@ void tratar_mensaje(void *sd_client_tratar)
     else
     {
         printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
+    }
+
+    if (strcmp(perfil.c_op, "SEND") == 0) {
+        int last_id = obtener_ultimo_id(alias_dest);
+        //dprintf(2, "last_id: %d\n", last_id);
+        last_id = htonl(last_id);
+        if (write (sd_client, &last_id, sizeof(int)) < 0)
+        {
+        perror("write: ");
+        }
+
+        else
+        {
+        printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
+        }
     }
     
     close (sd_client);

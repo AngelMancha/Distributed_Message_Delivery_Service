@@ -13,7 +13,7 @@ struct perfil {
     char *IP;
     int port;
     struct mensaje *mensajes;
-    int num_mensajes_recibidos;
+    int last_id;
 };
 
 

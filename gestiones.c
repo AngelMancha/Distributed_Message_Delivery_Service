@@ -30,6 +30,7 @@ int register_gestiones(struct perfil perfil){
 
     perfil.status = malloc(MAXSIZE);
     strcpy(perfil.status, "Desconectado");
+    perfil.last_id = 0;
 
     fichero_perfil = fopen(nombre_fichero, "wb");
     fichero_mensajes = fopen(nombre_mensajes_pendientes, "wb");
@@ -129,6 +130,7 @@ int connect_gestiones(struct perfil perfil)
     perfil.nombre = perfil_antiguo.nombre;
     perfil.fecha = perfil_antiguo.fecha;
     perfil.c_op = perfil_antiguo.c_op;
+    perfil.last_id = perfil_antiguo.last_id;
     perfil.status = "Conectado";
 
     // Mover el puntero de posición al inicio del archivo
@@ -186,6 +188,7 @@ int disconnect_gestiones(struct perfil perfil)
     perfil.nombre = perfil_antiguo.nombre;
     perfil.fecha = perfil_antiguo.fecha;
     perfil.c_op = perfil_antiguo.c_op;
+    perfil.last_id = perfil_antiguo.last_id;
     perfil.status = "Desconectado";
 
     // Mover el puntero de posición al inicio del archivo
@@ -233,27 +236,47 @@ int is_connected(char* destinatario, int * port, char *IP)
 
 }
 
-int obtener_ultimo_id(FILE *archivo, int num_mensajes) {
-    struct mensaje mensaje;
-    int ultimo_id;
-    for (int i = 0; i < num_mensajes; i++) {
-        if (i == num_mensajes) {
-        fread(&mensaje, sizeof(struct mensaje), 1, archivo);
-        }
-        ultimo_id = mensaje.id;
+int obtener_ultimo_id(char*alias) {
+    char nombre_fichero_dest_perfil[50];
+    struct perfil perfil_dest;
+    char nombre_fichero[50];
+    int last_id; 
+
+    sprintf(nombre_fichero_dest_perfil, "%s%s%s", peticion_root, alias, formato_fichero);
+    dprintf(2, "El nombre del fichero es: %s\n", nombre_fichero);
+    // Comprobamos la existencia del usuario origen
+    if (access(nombre_fichero_dest_perfil, F_OK) != 0) 
+    {
+        perror("Error: El usuario remitente no existe");
+        return 1;
     }
+
+    FILE *archivo_perfil = fopen(nombre_fichero_dest_perfil, "r+b");
+    if (archivo_perfil == NULL) 
+    {
+        perror("send(): Error al abrir los mensajes pendientes del remitente \n");
+        return 2;
+    }
+
+    fread(&perfil_dest, sizeof(struct perfil), 1, archivo_perfil);
+
+    last_id = perfil_dest.last_id;
+    fclose(archivo_perfil);
     
-    return ultimo_id;
+    return last_id;
 
 }
 
 int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *mensaje){
     //Esta función modifica el fichero que representa la clave key con los nuevos valores
+
     char nombre_fichero[50];
-    char nombre_fichero_dest[50];
-    int ultimo_id;
+    char nombre_fichero_dest_msg[50];
+    char nombre_fichero_dest_perf[50];
+
     struct mensaje mensaje_nuevo;
-    int num_mensajes;
+    struct perfil perfil_dest;
+   
     
     //struct tupla_pet pet;
     sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, extension_mensajes);
@@ -263,17 +286,51 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
         perror("Error: El usuario remitente no existe");
         return 1;
     }
-    sprintf(nombre_fichero_dest, "%s%s%s", peticion_root, destinatario, extension_mensajes);
+    sprintf(nombre_fichero_dest_msg, "%s%s%s", peticion_root, destinatario, extension_mensajes);
 
     // Comprobamos la existencia del usuario destino
-    if (access(nombre_fichero_dest, F_OK) != 0) 
+    if (access(nombre_fichero_dest_msg, F_OK) != 0) 
     {
-        perror("Error: El usuario destinatario no existe\n");
+        perror("Error: El usuario destinatario msg no existe\n");
         return 1;
     }
 
+    sprintf(nombre_fichero_dest_perf, "%s%s%s", peticion_root, destinatario, formato_fichero);
+
+    // Comprobamos la existencia del usuario destino
+    if (access(nombre_fichero_dest_perf, F_OK) != 0) 
+    {
+        perror("Error: El usuario destinatario perfil no existe\n");
+        return 1;
+    }
+
+    FILE *archivo_perfil = fopen(nombre_fichero_dest_perf, "r+b");
+    if (archivo_perfil == NULL) 
+    {
+        perror("send(): Error al abrir los mensajes pendientes del remitente \n");
+        return 2;
+    }
+
+    fread(&perfil_dest, sizeof(struct perfil), 1, archivo_perfil);
+    
+
+    mensaje_nuevo.id = perfil_dest.last_id + 1;
+    perfil_dest.last_id = perfil_dest.last_id + 1;
+
+    dprintf(2, "\n\n\n\n\nEL ID DEL MENSAJE ES: %d\n\n\n\n\n", mensaje_nuevo.id);
+
+    // Mover el puntero de posición al inicio del archivo
+    fseek(archivo_perfil, 0, SEEK_SET);
+
+    // Escribir el nuevo registro
+    fwrite(&perfil_dest, sizeof(struct perfil), 1, archivo_perfil);
+
+    fclose(archivo_perfil);
+
+
+
     //abrimos el fichero que contiene los mensajes pendientes del usuario destinatario
-    FILE *archivo = fopen(nombre_fichero_dest, "r+b");
+    FILE *archivo = fopen(nombre_fichero_dest_msg, "r+b");
     if (archivo == NULL) 
     {
         perror("send(): Error al abrir los mensajes pendientes del destinatario \n");
@@ -283,17 +340,8 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     // Mover el puntero de posición al final del archivo
     fseek(archivo, 0, SEEK_END);
 
-    //se crea el mensaje nuevo y se añade al array de mensajes pendientes del destinatario
-    
-    num_mensajes = num_mensajes_pendientes(perfil.alias);
-    if (num_mensajes == 0) {
-        ultimo_id = -1;
-    }
-    else {
-        ultimo_id = obtener_ultimo_id(archivo, num_mensajes);
-    }
-    
-    mensaje_nuevo.id = ultimo_id + 1;
+
+ 
     strcpy(mensaje_nuevo.mensaje, mensaje);
     strcpy(mensaje_nuevo.remitente, perfil.alias);
     
@@ -329,7 +377,6 @@ int num_mensajes_pendientes(char *destinatario){
     fclose(fp);
     return contador;
 }
-
 
 char **extraerMensajes(char *destinatario, int numMensajes) {
 
@@ -394,6 +441,7 @@ char **extraerRemitentes(char *destinatario, int numMensajes) {
     struct mensaje mensaje;
     for (int i = 0; i < numMensajes; i++) {
         fread(&mensaje, sizeof(struct mensaje), 1, fp);
+
         remitentes[i] = malloc(strlen(mensaje.remitente) + 1);
         if (remitentes[i] == NULL) {
             printf("Error al asignar memoria");
@@ -406,4 +454,67 @@ char **extraerRemitentes(char *destinatario, int numMensajes) {
     // y devuelve un puntero a un puntero a puntero que apunta a un array de strings donde
     // están los mensjaes del destinatario
     return remitentes;
+}
+
+
+
+// void print_last_id(char *destinatario){
+//     struct perfil perfil_dest;
+//     char nombre_fichero_dest_perf[50];
+//     sprintf(nombre_fichero_dest_perf, "%s%s%s", peticion_root, destinatario, formato_fichero);
+
+//     // Comprobamos la existencia del usuario destino
+//     if (access(nombre_fichero_dest_perf, F_OK) != 0) 
+//     {
+//         perror("Error: El usuario destinatario perfil no existe\n");
+
+//     }
+
+//     FILE *archivo_perfil = fopen(nombre_fichero_dest_perf, "r+b");
+//     if (archivo_perfil == NULL) 
+//     {
+//         perror("send(): Error al abrir los mensajes pendientes del remitente \n");
+       
+//     }
+
+//     fread(&perfil_dest, sizeof(struct perfil), 1, archivo_perfil);
+//     dprintf(2, "\n\n\nEL ID DEL PERFIL DEST ES: %d\n\n\n", perfil_dest.last_id);
+
+//     fclose(archivo_perfil);
+
+
+// }
+
+
+
+int *extraerIDs(char *destinatario, int numMensajes) {
+
+    char nombre_fichero[50];
+    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, extension_mensajes);
+
+    FILE *fp = fopen(nombre_fichero, "rb");
+    if (fp == NULL) {
+        printf("Error al abrir el archivo");
+        exit(1);
+    }
+
+    // Crear un array de enteros para almacenar los IDs
+    int *ids = malloc(numMensajes * sizeof(int));
+    if (ids == NULL) {
+        printf("Error al asignar memoria");
+        exit(1);
+    }
+    
+    // Leer cada estructura y extraer el campo "id"
+    struct mensaje mensaje;
+    for (int i = 0; i < numMensajes; i++) {
+        fread(&mensaje, sizeof(struct mensaje), 1, fp);
+        dprintf(2, "EL REMITENTE DEL MENSAJEEEEEEEEEEEE ES: %d\n", mensaje.id);
+        ids[i] = mensaje.id;
+
+    }
+    fclose(fp);
+    
+    // Devuelve un puntero a un array de enteros donde están los IDs de las estructuras
+    return ids;
 }

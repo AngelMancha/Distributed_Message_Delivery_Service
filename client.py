@@ -316,13 +316,14 @@ class client :
                 print(f"Error al enviar los datos: {e}")
         finally:
             result = int.from_bytes(sock.recv(4), 'big')
+            id = int.from_bytes(sock.recv(4), 'big')
             
             sock.close()
         
         
         
         if result == 0:
-            window['_SERVER_'].print("s> SEND OK- MESSAGE <id>")
+            window['_SERVER_'].print(f"s> SEND OK- MESSAGE {id}")
             print("SEND " + user + " " + message)
         if result == 1:
             window['_SERVER_'].print("s> SEND FAIL / USER DOES NOT EXIST")
@@ -369,7 +370,7 @@ class client :
                 server_send = client.readLine(connection)
                 
                 if server_send == "SEND_MESS_ACK":
-                    id = 0
+                    id = client.readLine(connection)
                     window['_SERVER_'].print(f"s> > SEND MESSAGE {id} OK")
                     #window['_SERVER_'].print(f"s> > SEND MESSAGE {id} FROM {client._alias} TO {client._dest}")
                 elif server_send == "SEND_MESSAGE":
@@ -417,8 +418,8 @@ class client :
         layout_register = [[sg.Text('Full Name:'),sg.Input('Text',key='_REGISTERNAME_', do_not_clear=True, expand_x=True)],
                             [sg.Text('Alias:'),sg.Input('Text',key='_REGISTERALIAS_', do_not_clear=True, expand_x=True)],
                             [sg.Text('Date of birth:'),sg.Input('',key='_REGISTERDATE_', do_not_clear=True, expand_x=True, disabled=True, use_readonly_for_disable=False),
-                            sg.CalendarButton("Select Date",close_when_date_chosen=True, target="_REGISTERDATE_", format='%d-%m-%Y',size=(10,1))],
-                            [sg.Button('SUBMIT', button_color=('white', 'blue'))]
+                            sg.CalendarButton("Select Date",close_when_date_chosen=True, target="_REGISTERDATE_", format='%d/%m/%Y',size=(10,1))],
+                            [sg.Button('SUBMIT', button_color=('white', 'blue'))] 
                             ]
 
         layout = [[sg.Column(layout_register, element_justification='center', expand_x=True, expand_y=True)]]
