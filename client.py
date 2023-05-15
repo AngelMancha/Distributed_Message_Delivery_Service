@@ -350,10 +350,65 @@ class client :
         return client.RC.ERROR
 
     @staticmethod
-    def  connectedUsers(window):
-        window['_SERVER_'].print("s> CONNECTED USERS OK")
-        #  Write your code here
-        return client.RC.ERROR
+    def connectedUsers(window):
+        # Creamos el socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Nos conectamos al servidor a través de los argumentos
+        server_address = (client._server, client._port)
+        print('connecting to {} port {}'.format(*server_address))
+        sock.connect(server_address)
+        
+        # Enviamos la info al servidor
+        try:
+            ############ OP. CODE ############
+            c_op = "CONNECTEDUSERS"
+            sock.sendall(c_op.encode("utf-8"))
+            sock.sendall(b'\0')
+            
+        except socket.error as e:
+            print(f"Error al enviar los datos: {e}")
+        finally:
+            ############ RESULT ############
+            result = int.from_bytes(sock.recv(4), 'big')
+            lista_conectados = []
+            if result == 0:
+            ############# CADENA NUM CLIENTES CONECTADOS ############
+                num_users_conected = sock.recv(1).decode('utf-8')
+                print(f"NUMERO DE CLIENTES CONECTADOS: {num_users_conected}")
+                ############# RECIBIR CLIENTES ############
+                    
+                for i in range(0, int(num_users_conected) + 1):
+                    client_data = client.readLine(sock)
+                    lista_conectados.append(client_data)
+            
+            
+            # if result == 0:
+            #     num_users = sock.recv(1).decode('utf-8')
+            #     i = 1
+            #     string = "s> CONNECTED USERS (" + str(num_users) + " users connected) OK - "
+            #     string += client.readLine(sock)
+            #     while i < int(num_users):
+            #         user = client.readLine(sock)
+            #         string += ",  " + user
+            #         i += 1
+            
+        
+            sock.close()
+
+            print("RESULT IN CLIENT " + str(result))
+        # Comprobamos los resultados
+        if result == 0:
+            window['_SERVER_'].print("CONNECTED USERS {} OK - {}".format(num_users_conected, lista_conectados))
+            return client.RC.OK
+        if result == 1:
+            window['_SERVER_'].print("s> CONNECTED USERS FAIL/ USER IS NOT CONNECTED")
+            return client.RC.USER_ERROR
+        if result == 2:
+            window['_SERVER_'].print("s> CONNECTED USERS FAIL")
+            return client.RC.ERROR
+        return client.RC.ERROR 
+        
 
 
     @staticmethod
@@ -404,7 +459,6 @@ class client :
         message_total = ''
         while True:
             message = connection.recv(1).decode('utf-8')
-            print(f"Recibiendo mensaje: {message}")
             if message == '\0':
                 break
             message_total += message

@@ -5,7 +5,8 @@
 #include <dirent.h>
 #include <string.h>
 #include "gestiones.h"
-#define peticion_root "./DDBB/" // raiz para coger los ficheros
+#define peticion_root_msg "./DDBB/mensajes/"
+#define peticion_root_perfil "./DDBB/perfiles/"
 #define formato_fichero ".dat"   
 #define extension_mensajes "_mensajes.dat"
 
@@ -16,8 +17,8 @@ int register_gestiones(struct perfil perfil){
     char nombre_fichero[50];
     char nombre_mensajes_pendientes[50];
 
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, formato_fichero);
-    sprintf(nombre_mensajes_pendientes, "%s%s%s", peticion_root, perfil.alias, extension_mensajes);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_perfil, perfil.alias, formato_fichero);
+    sprintf(nombre_mensajes_pendientes, "%s%s%s", peticion_root_msg, perfil.alias, extension_mensajes);
     
     // Comprobamos la existencia de la clave
 
@@ -67,7 +68,7 @@ int unregister_gestiones(struct perfil perfil)
 {
     char nombre_fichero[50];
 
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, formato_fichero);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_perfil, perfil.alias, formato_fichero);
 
     // Comprobamos si hay existencia del fichero
     if (access(nombre_fichero, F_OK) != 0) 
@@ -100,7 +101,7 @@ int connect_gestiones(struct perfil perfil)
     //struct tupla_pet pet;
 
     sprintf(str_key, "%s", perfil.alias);
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, str_key, formato_fichero);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_perfil, str_key, formato_fichero);
 
     // Comprobamos la existencia de la clave
     if (access(nombre_fichero, F_OK) != 0) 
@@ -161,7 +162,7 @@ int disconnect_gestiones(struct perfil perfil)
     //struct tupla_pet pet;
 
     sprintf(str_key, "%s", perfil.alias);
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, str_key, formato_fichero);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_perfil, str_key, formato_fichero);
 
     // Comprobamos la existencia de la clave
     if (access(nombre_fichero, F_OK) != 0) 
@@ -218,7 +219,7 @@ int is_connected(char* destinatario, int * port, char *IP)
 
     char nombre_fichero[50];
 
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, formato_fichero);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_perfil, destinatario, formato_fichero);
 
     FILE *archivo = fopen(nombre_fichero, "r+b");
     
@@ -252,7 +253,7 @@ int obtener_ultimo_id(char*alias) {
     //char nombre_fichero[50];
     int last_id; 
 
-    sprintf(nombre_fichero_dest_perfil, "%s%s%s", peticion_root, alias, formato_fichero);
+    sprintf(nombre_fichero_dest_perfil, "%s%s%s", peticion_root_perfil, alias, formato_fichero);
     //dprintf(2, "El nombre del fichero es: %s\n", nombre_fichero);
     // Comprobamos la existencia del usuario origen
     if (access(nombre_fichero_dest_perfil, F_OK) != 0) 
@@ -289,14 +290,14 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
    
     
     //struct tupla_pet pet;
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, perfil.alias, extension_mensajes);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_msg, perfil.alias, extension_mensajes);
     // Comprobamos la existencia del usuario origen
     if (access(nombre_fichero, F_OK) != 0) 
     {
         perror("Error: El usuario remitente no existe");
         return 1;
     }
-    sprintf(nombre_fichero_dest_msg, "%s%s%s", peticion_root, destinatario, extension_mensajes);
+    sprintf(nombre_fichero_dest_msg, "%s%s%s", peticion_root_msg, destinatario, extension_mensajes);
 
     // Comprobamos la existencia del usuario destino
     if (access(nombre_fichero_dest_msg, F_OK) != 0) 
@@ -305,7 +306,7 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
         return 1;
     }
 
-    sprintf(nombre_fichero_dest_perf, "%s%s%s", peticion_root, destinatario, formato_fichero);
+    sprintf(nombre_fichero_dest_perf, "%s%s%s", peticion_root_perfil, destinatario, formato_fichero);
 
     // Comprobamos la existencia del usuario destino
     if (access(nombre_fichero_dest_perf, F_OK) != 0) 
@@ -369,7 +370,7 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
 
 int num_mensajes_pendientes(char *destinatario){
     char nombre_fichero[50];
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, extension_mensajes);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_msg, destinatario, extension_mensajes);
 
 
     FILE *fp = fopen(nombre_fichero, "rb");
@@ -391,7 +392,7 @@ int num_mensajes_pendientes(char *destinatario){
 char **extraerMensajes(char *destinatario, int numMensajes) {
 
     char nombre_fichero[50];
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, extension_mensajes);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_msg, destinatario, extension_mensajes);
 
     FILE *fp = fopen(nombre_fichero, "rb");
     if (fp == NULL) {
@@ -432,7 +433,7 @@ char **extraerMensajes(char *destinatario, int numMensajes) {
 char **extraerRemitentes(char *destinatario, int numMensajes) {
 
     char nombre_fichero[50];
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, extension_mensajes);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_msg, destinatario, extension_mensajes);
 
     FILE *fp = fopen(nombre_fichero, "rb");
     if (fp == NULL) {
@@ -467,40 +468,10 @@ char **extraerRemitentes(char *destinatario, int numMensajes) {
 }
 
 
-
-// void print_last_id(char *destinatario){
-//     struct perfil perfil_dest;
-//     char nombre_fichero_dest_perf[50];
-//     sprintf(nombre_fichero_dest_perf, "%s%s%s", peticion_root, destinatario, formato_fichero);
-
-//     // Comprobamos la existencia del usuario destino
-//     if (access(nombre_fichero_dest_perf, F_OK) != 0) 
-//     {
-//         perror("Error: El usuario destinatario perfil no existe\n");
-
-//     }
-
-//     FILE *archivo_perfil = fopen(nombre_fichero_dest_perf, "r+b");
-//     if (archivo_perfil == NULL) 
-//     {
-//         perror("send(): Error al abrir los mensajes pendientes del remitente \n");
-       
-//     }
-
-//     fread(&perfil_dest, sizeof(struct perfil), 1, archivo_perfil);
-//     dprintf(2, "\n\n\nEL ID DEL PERFIL DEST ES: %d\n\n\n", perfil_dest.last_id);
-
-//     fclose(archivo_perfil);
-
-
-// }
-
-
-
 int *extraerIDs(char *destinatario, int numMensajes) {
 
     char nombre_fichero[50];
-    sprintf(nombre_fichero, "%s%s%s", peticion_root, destinatario, extension_mensajes);
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_msg, destinatario, extension_mensajes);
 
     FILE *fp = fopen(nombre_fichero, "rb");
     if (fp == NULL) {
@@ -527,4 +498,115 @@ int *extraerIDs(char *destinatario, int numMensajes) {
     
     // Devuelve un puntero a un array de enteros donde están los IDs de las estructuras
     return ids;
+}
+
+
+
+char **create_array_connected_users() {
+    DIR *dir;
+    int numMensajes = count_elements(); 
+    struct dirent *entrada;
+    char **usuarios = malloc(numMensajes * sizeof(char *));
+    // Abrir el directorio
+    dir = opendir(peticion_root_perfil);
+    if (dir == NULL) {
+        printf("No se pudo abrir el directorio");
+        exit(1);
+    }
+    int i = 0;
+    // Leer cada entrada en el directorio
+    while ((entrada = readdir(dir)) != NULL) {
+
+        // Ignorar las entradas "." y ".."
+        if (strcmp(entrada->d_name, ".") == 0 || strcmp(entrada->d_name, "..") == 0) {
+            continue;
+        }
+
+        // Construir la ruta completa del archivo
+        char ruta_archivo[256]; // Aumentamos el tamaño del arreglo
+        strcpy(ruta_archivo, peticion_root_perfil);
+        strcat(ruta_archivo, entrada->d_name);
+        //sprintf(ruta_archivo, "%s%s", peticion_root_perfil, entrada->d_name);
+
+        // Abrir el archivo en modo de lectura
+        FILE *archivo = fopen(ruta_archivo, "rb");
+        if (archivo == NULL) {
+            printf("No se pudo abrir el archivo: %s\n", ruta_archivo);
+            continue;
+        }
+
+        // Leer la estructura desde el archivo
+        struct perfil perfil;
+        fread(&perfil, sizeof(struct perfil), 1, archivo);
+
+        // Acceder al campo "status" y hacer algo con él
+        if (strcmp(perfil.status, "Conectado") == 0) {
+             usuarios[i] = malloc(strlen(perfil.alias) + 1);
+            if (usuarios[i] == NULL) {
+                printf("Error al asignar memoria");
+                exit(1);
+            }
+            strcpy(usuarios[i], perfil.alias);
+            printf("El usuario %s está conectado\n",usuarios[i]);
+            i = i + 1;
+        }
+        
+
+        // Cerrar el archivo
+        fclose(archivo);
+    }
+
+    // Cerrar el directorio
+    closedir(dir);
+    return usuarios;
+}
+
+int count_elements() {
+    DIR *dir;
+    int contador = 0; 
+    struct dirent *entrada;
+    // Abrir el directorio
+    dir = opendir(peticion_root_perfil);
+    if (dir == NULL) {
+        printf("No se pudo abrir el directorio");
+        exit(1);
+    }
+
+    // Leer cada entrada en el directorio
+    while ((entrada = readdir(dir)) != NULL) {
+        // Ignorar las entradas "." y ".."
+        if (strcmp(entrada->d_name, ".") == 0 || strcmp(entrada->d_name, "..") == 0) {
+            continue;
+        }
+
+        // Construir la ruta completa del archivo
+        char ruta_archivo[256]; // Aumentamos el tamaño del arreglo
+        strcpy(ruta_archivo, peticion_root_perfil);
+        strcat(ruta_archivo, entrada->d_name);
+
+        // Abrir el archivo en modo de lectura
+        FILE *archivo = fopen(ruta_archivo, "rb");
+        if (archivo == NULL) {
+            printf("No se pudo abrir el archivo: %s\n", ruta_archivo);
+            continue;
+        }
+
+        // Leer la estructura desde el archivo
+        struct perfil perfil;
+        fread(&perfil, sizeof(struct perfil), 1, archivo);
+        dprintf(2, "Revisando si el usuario está conectado\n");
+        // Acceder al campo "status" y hacer algo con él
+        if (strcmp(perfil.status, "Conectado") == 0) {
+             contador += 1;
+            dprintf(2, "Valor de contador es %d\n", contador);
+
+        }
+
+        // Cerrar el archivo
+        fclose(archivo);
+    }
+
+    // Cerrar el directorio
+    closedir(dir);
+    return contador;
 }

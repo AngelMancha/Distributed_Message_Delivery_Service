@@ -187,7 +187,11 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
         // Reserva de memoria
         perfil->IP = malloc(MAXSIZE);
         strcpy(perfil->alias, alias);
-}
+    } else if (strcmp(c_op, "CONNECTEDUSERS") == 0) {
+        res = 0;    // devolvemos el valor del resultado como 0 ya que se ha recibido correctamente el c_op
+    } else {
+        perror("El código de operación no es válido \n");
+    }
 
     return res;
 }
@@ -200,6 +204,9 @@ void tratar_mensaje(void *sd_client_tratar)
     struct perfil perfil;
     char IP[MAXSIZE];
     int port;
+    int num_elements;
+        
+    char **array_connected_users;
 
     // Para el posible envío de mensajes
     char alias_dest[MAXSIZE];
@@ -213,6 +220,8 @@ void tratar_mensaje(void *sd_client_tratar)
     pthread_cond_signal(&cond_mensaje);
 	pthread_mutex_unlock(&mutex_mensaje);
 
+    // llamamos a la función que se encarfa de recibir los mensajes enviados por el
+    // cliente a través de sockets
     resultado = recibir_msj_socket(sd_client, &perfil, alias_dest, message);
 
     if (strcmp(perfil.c_op, "REGISTER") == 0) {
@@ -253,9 +262,6 @@ void tratar_mensaje(void *sd_client_tratar)
         resultado = send_to_server_gestiones(perfil, alias_dest, message);
         int connected = is_connected(alias_dest, &port, IP);
 
-        
-
-    
 
         // Si una vez enviados al servidor, se comprueba que el destinatario está conectado,
         //se le envían automáticametne
@@ -309,8 +315,9 @@ void tratar_mensaje(void *sd_client_tratar)
                 perror("write: ");
                 resultado = 3;
             }
-
+            
             dprintf(2, "SEND MESSAGE %s FROM %s TO %s\n", last_id_ack, perfil.alias, alias_dest);
+            free(last_id_ack);
             close(socket_thread);
         }else{
             // Se queda guarado en la lista de mensajes pendientes
@@ -321,7 +328,17 @@ void tratar_mensaje(void *sd_client_tratar)
         // liberar memoria
 
 
-    } else {
+    } else if (strcmp(perfil.c_op, "CONNECTEDUSERS") == 0) {
+        num_elements = count_elements();
+        
+        array_connected_users = create_array_connected_users();
+        dprintf(2, "[DEBUG] El numero de usuarios conectados es: %d\n\n", num_elements);
+        
+        for (int i; i < num_elements; i++) {
+            dprintf(2,"[DEBUG] El usuario %s está conectado\n", array_connected_users[i]);
+        }
+    
+    }else {
         printf("Error: código de operación no válido.\n");
         exit(-1);
     }
@@ -355,6 +372,25 @@ void tratar_mensaje(void *sd_client_tratar)
         {
         //printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
         }
+    } else if (strcmp(perfil.c_op, "CONNECTEDUSERS") == 0) {
+        char num_elements_char[MAXSIZE];
+
+        sprintf(num_elements_char, "%d", num_elements);
+
+        if (sendMessage (sd_client, num_elements_char, strlen(num_elements_char)+1) < 0)
+        {
+        perror("write: ");
+        }
+        for (int i; i <= num_elements; i++) {
+            if (sendMessage (sd_client, array_connected_users[i], strlen(array_connected_users[i])+1) < 0)
+            {
+            perror("write: ");
+            }
+            dprintf(2, "He enviado al usuario %s\n", array_connected_users[i]);
+            //dprintf(2,"[DEBUG] El usuario %s está conectado\n", array_connected_users[i]);
+            free(array_connected_users[i]);
+        }
+        
     }
     
     close (sd_client);

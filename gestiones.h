@@ -13,4 +13,5 @@ int num_mensajes_pendientes(char *destinatario);
 char **extraerMensajes(char *destinatario, int numMensajes);
 char **extraerRemitentes(char *destinatario, int numMensajes);
 int *extraerIDs(char *destinatario, int numMensajes);
-//void print_last_id(char *destinatario);
+char **create_array_connected_users();
+int count_elements();
