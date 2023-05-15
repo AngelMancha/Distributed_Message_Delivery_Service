@@ -381,7 +381,7 @@ void tratar_mensaje(void *sd_client_tratar)
         {
         perror("write: ");
         }
-        for (int i; i <= num_elements; i++) {
+        for (int i=0; i < num_elements; i++) {
             if (sendMessage (sd_client, array_connected_users[i], strlen(array_connected_users[i])+1) < 0)
             {
             perror("write: ");
