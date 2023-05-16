@@ -638,7 +638,6 @@ int connected_users_gestiones(char* destinatario)
     struct perfil perfil;
     
     fread(&perfil, sizeof(struct perfil), 1, archivo);
-    dprintf(2, "[DEBUG] El usuario que comprobamos es %s\n", destinatario);
     if (strcmp(perfil.status, "Conectado") != 0){
         perror("Error: El usuario no está conectado\n");
         return 1;

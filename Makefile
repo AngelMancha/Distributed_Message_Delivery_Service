@@ -7,7 +7,7 @@ SERVER = server.c
 all: server
 	rm ./DDBB/perfiles/*
 	rm ./DDBB/mensajes/*
-server: $(SERVER) gestiones.c funciones_server.c leer_campos.c
+server: $(SERVER) gestiones.c funciones_server.c 
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 clean:
