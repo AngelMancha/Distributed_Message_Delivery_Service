@@ -297,7 +297,6 @@ void tratar_mensaje(void *sd_client_tratar)
 
             thread_addr.sin_family = AF_INET;
             thread_addr.sin_port = htons(port_remitente);
-            //printf(">>>>>>> %d\n", thread_addr.sin_port) ;
             
             
             int cod = connect(socket_thread, (struct sockaddr *)&thread_addr, sizeof(thread_addr));

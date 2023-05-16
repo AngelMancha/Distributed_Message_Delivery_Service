@@ -12,4 +12,5 @@ server: $(SERVER) gestiones.c funciones_server.c
 
 clean:
 	rm -f server
-	rm ./DDBB/*
+	rm ./DDBB/perfiles/*
+	rm ./DDBB/mensajes/*

@@ -71,7 +71,6 @@ int unregister_gestiones(struct perfil perfil)
 
     sprintf(nombre_fichero, "%s%s%s", peticion_root_perfil, perfil.alias, formato_fichero);
     sprintf(nombre_fichero_mensajes, "%s%s%s", peticion_root_msg, perfil.alias, extension_mensajes);
-    dprintf(2, "NOmbre del fichero es%s\n", nombre_fichero_mensajes);
 
     // Comprobamos si hay existencia del fichero
     if (access(nombre_fichero, F_OK) != 0) 
@@ -305,7 +304,6 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     // Comprobamos la existencia del usuario origen
     if (access(nombre_fichero, F_OK) != 0) 
     {
-        // printf("[DEBUG] El usuario remitente no existe");
         return 1;
     }
     sprintf(nombre_fichero_dest_msg, "%s%s%s", peticion_root_msg, destinatario, extension_mensajes);
@@ -313,7 +311,6 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     // Comprobamos la existencia del usuario destino
     if (access(nombre_fichero_dest_msg, F_OK) != 0) 
     {
-        // printf("[DEBUG] El usuario destinatario msg no existe\n");
         return 1;
     }
 
@@ -322,14 +319,12 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     // Comprobamos la existencia del usuario destino
     if (access(nombre_fichero_dest_perf, F_OK) != 0) 
     {
-        // printf("[DEBUG] El usuario destinatario perfil no existe\n");
         return 1;
     }
 
     FILE *archivo_perfil = fopen(nombre_fichero_dest_perf, "r+b");
     if (archivo_perfil == NULL) 
     {
-        // printf("[DEBUG] Error al abrir los mensajes pendientes del remitente \n");
         return 2;
     }
 
@@ -339,7 +334,6 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     mensaje_nuevo.id = perfil_dest.last_id + 1;
     perfil_dest.last_id = perfil_dest.last_id + 1;
 
-    //dprintf(2, "\n\n\n\n\nEL ID DEL MENSAJE ES: %d\n\n\n\n\n", mensaje_nuevo.id);
 
     // Mover el puntero de posición al inicio del archivo
     fseek(archivo_perfil, 0, SEEK_SET);
@@ -355,7 +349,6 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     FILE *archivo = fopen(nombre_fichero_dest_msg, "r+b");
     if (archivo == NULL) 
     {
-        // printf("[DEBUG] Error al abrir los mensajes pendientes del destinatario \n");
         return 2;
     }
 
@@ -501,7 +494,6 @@ int *extraerIDs(char *destinatario, int numMensajes) {
     struct mensaje mensaje;
     for (int i = 0; i < numMensajes; i++) {
         fread(&mensaje, sizeof(struct mensaje), 1, fp);
-        //dprintf(2, "EL REMITENTE DEL MENSAJEEEEEEEEEEEE ES: %d\n", mensaje.id);
         ids[i] = mensaje.id;
 
     }
@@ -558,7 +550,6 @@ char **create_array_connected_users() {
                 exit(1);
             }
             strcpy(usuarios[i], perfil.alias);
-            //printf("El usuario %s está conectado\n",usuarios[i]);
             i = i + 1;
         }
         
