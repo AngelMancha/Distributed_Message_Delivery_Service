@@ -29,7 +29,7 @@ int register_gestiones(struct perfil perfil){
     }
 
 
-    perfil.status = malloc(MAXSIZE);
+   // perfil.status = malloc(MAXSIZE);
     strcpy(perfil.status, "Desconectado");
     perfil.last_id = 0;
 
@@ -139,7 +139,7 @@ int connect_gestiones(struct perfil perfil)
     perfil.fecha = perfil_antiguo.fecha;
     perfil.c_op = perfil_antiguo.c_op;
     perfil.last_id = perfil_antiguo.last_id;
-    perfil.status = "Conectado";
+    strcpy(perfil.status, "Conectado");
 
     // Mover el puntero de posición al inicio del archivo
     fseek(archivo, 0, SEEK_SET);
@@ -200,7 +200,8 @@ int disconnect_gestiones(struct perfil perfil)
     perfil.fecha = perfil_antiguo.fecha;
     perfil.c_op = perfil_antiguo.c_op;
     perfil.last_id = perfil_antiguo.last_id;
-    perfil.status = "Desconectado";
+    strcpy(perfil.status, "Desconectado");
+
 
     // Mover el puntero de posición al inicio del archivo
     fseek(archivo, 0, SEEK_SET);
@@ -635,8 +636,9 @@ int connected_users_gestiones(char* destinatario)
 
     // Leer el registro
     struct perfil perfil;
+    
     fread(&perfil, sizeof(struct perfil), 1, archivo);
-
+    dprintf(2, "[DEBUG] El usuario que comprobamos es %s\n", destinatario);
     if (strcmp(perfil.status, "Conectado") != 0){
         perror("Error: El usuario no está conectado\n");
         return 1;

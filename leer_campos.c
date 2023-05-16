@@ -83,11 +83,11 @@ void reservar_memoria_perfil(struct perfil *perfil, int size) {
         fprintf(stderr, "Failed to allocate memory for c_op\n");
         exit(1);
     }
-    perfil->status = malloc(size * sizeof(char));
-    if (perfil->status == NULL) {
-        fprintf(stderr, "Failed to allocate memory for status\n");
-        exit(1);
-    }
+    // perfil->status = malloc(size * sizeof(char));
+    // if (perfil->status == NULL) {
+    //     fprintf(stderr, "Failed to allocate memory for status\n");
+    //     exit(1);
+    // }
     perfil->IP = malloc(size * sizeof(char));
     if (perfil->IP == NULL) {
         fprintf(stderr, "Failed to allocate memory for IP\n");
@@ -104,7 +104,7 @@ void liberar_memoria_perfil(struct perfil *perfil) {
     free(perfil->alias);
     free(perfil->fecha);
     free(perfil->c_op);
-    free(perfil->status);
+   // free(perfil->status);
     free(perfil->IP);
 
 }

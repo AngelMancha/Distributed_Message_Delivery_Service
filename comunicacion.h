@@ -9,7 +9,7 @@ struct perfil {
     char *alias;
     char *fecha;
     char *c_op;
-    char * status;
+    char status[MAXSIZE];
     char *IP;
     int port;
     int last_id;

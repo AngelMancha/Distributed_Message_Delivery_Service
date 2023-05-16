@@ -186,12 +186,19 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
 
         // Reserva de memoria
         perfil->IP = malloc(MAXSIZE);
+        perfil->alias = malloc(MAXSIZE);
         strcpy(perfil->alias, alias);
+        
     } else if (strcmp(c_op, "CONNECTEDUSERS") == 0) {
-        res = 0;    // devolvemos el valor del resultado como 0 ya que se ha recibido correctamente el c_op
+        // ********** ALIAS USER ***********
+        res = read_alias(sd_client, alias);
+        perfil->alias = malloc(MAXSIZE);
+        strcpy(perfil->alias, alias);
     } else {
+        
         dprintf(2, "Codigo de op: %s\n", c_op);
         perror("El código de operación no es válido \n");
+        
     }
 
     return res;
@@ -227,7 +234,8 @@ void tratar_mensaje(void *sd_client_tratar)
     resultado = recibir_msj_socket(sd_client, &perfil, alias_dest, message);
 
     if (strcmp(perfil.c_op, "REGISTER") == 0) {
-        perfil.status = "Desconectado";
+        
+        strcpy(perfil.status, "Desconectado");
         perfil.port = 0;
         resultado = register_gestiones(perfil);
         
@@ -330,6 +338,7 @@ void tratar_mensaje(void *sd_client_tratar)
 
     } else if (strcmp(perfil.c_op, "CONNECTEDUSERS") == 0) {
 
+        dprintf(2, "[DEB] El usuaro que vamos a comprobar si esta conectado es %s", perfil.alias);
         resultado = connected_users_gestiones(perfil.alias);
         num_elements = count_elements();
         array_connected_users = create_array_connected_users();

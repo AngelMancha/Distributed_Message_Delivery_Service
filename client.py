@@ -370,6 +370,10 @@ class client :
             sock.sendall(c_op.encode("utf-8"))
             sock.sendall(b'\0')
             
+            ############ ALIAS USUARIO  ############
+            sock.sendall(client._alias.encode("utf-8"))
+            sock.sendall(b'\0')  
+            
         except socket.error as e:
             print(f"Error al enviar los datos: {e}")
         finally:
