@@ -642,7 +642,7 @@ int connected_users_gestiones(char* destinatario)
         return 1;
     }
 
-    count_elements();
+    
 
     return 0;
 
