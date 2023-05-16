@@ -24,7 +24,7 @@ int register_gestiones(struct perfil perfil){
 
     if (access(nombre_fichero, F_OK) == 0) 
     {
-        perror("register_gestiones(): El usuario ya existe");
+        printf("REGISTER %s FAIL\n", perfil.alias);
         return 1;
     }
 
@@ -42,7 +42,7 @@ int register_gestiones(struct perfil perfil){
         fclose(fichero_perfil);  
     } else 
     {
-        perror("Registro(): No se pudo abrir el archivo.\n");
+        printf("REGISTER FAIL\n");
         dprintf(2, "s> REGISTER %s FAIL\n", perfil.alias);
         
         return 2;
@@ -67,13 +67,23 @@ int register_gestiones(struct perfil perfil){
 int unregister_gestiones(struct perfil perfil)
 {
     char nombre_fichero[50];
+    char nombre_fichero_mensajes[50];
 
     sprintf(nombre_fichero, "%s%s%s", peticion_root_perfil, perfil.alias, formato_fichero);
+    sprintf(nombre_fichero_mensajes, "%s%s%s", peticion_root_msg, perfil.alias, extension_mensajes);
+    dprintf(2, "NOmbre del fichero es%s\n", nombre_fichero_mensajes);
 
     // Comprobamos si hay existencia del fichero
     if (access(nombre_fichero, F_OK) != 0) 
     {
-        perror("unregister_gestiones(): La clave no existe");
+        
+        dprintf(2, "s> UNREGISTER %s FAIL\n", perfil.alias);
+        return 1;
+    }
+    // Comprobamos si hay existencia del fichero
+    if (access(nombre_fichero_mensajes, F_OK) != 0) 
+    {
+        
         dprintf(2, "s> UNREGISTER %s FAIL\n", perfil.alias);
         return 1;
     }
@@ -81,10 +91,16 @@ int unregister_gestiones(struct perfil perfil)
     //eliminamos el fichero
     if (remove(nombre_fichero) != 0) 
     {
-        perror("Ha ocurrido un error al dar de baja al usuario");
         dprintf(2, "s> UNREGISTER %s FAIL\n", perfil.alias);
         return 2;
     } 
+    //eliminamos el fichero
+    if (remove(nombre_fichero_mensajes) != 0) 
+    {
+        dprintf(2, "s> UNREGISTER %s FAIL\n", perfil.alias);
+        return 2;
+    } 
+
 
 
     dprintf(2, "s> UNREGISTER %s OK\n", perfil.alias);
@@ -106,7 +122,6 @@ int connect_gestiones(struct perfil perfil)
     // Comprobamos la existencia de la clave
     if (access(nombre_fichero, F_OK) != 0) 
     {
-        perror("modify_value(): El usuario no existe");
         dprintf(2, "s> CONNECT %s FAIL\n", perfil.alias);
         return 1;
     }
@@ -116,7 +131,6 @@ int connect_gestiones(struct perfil perfil)
     
     if (archivo == NULL) 
     {
-        perror("Modify_value_impl(): Error al abrir el archivo\n");
         dprintf(2, "s> CONNECT %s FAIL\n", perfil.alias);
         return 3;
     }
@@ -129,7 +143,6 @@ int connect_gestiones(struct perfil perfil)
     fread(&perfil_antiguo, sizeof(struct perfil), 1, archivo);
 
     if (strcmp(perfil_antiguo.status, "Conectado") == 0){
-        perror("El usuario ya está conectado");
         dprintf(2, "s> CONNECT %s FAIL\n", perfil.alias);
         return 2;
     }
@@ -167,7 +180,6 @@ int disconnect_gestiones(struct perfil perfil)
     // Comprobamos la existencia de la clave
     if (access(nombre_fichero, F_OK) != 0) 
     {
-        perror("modify_value(): El usuario no existe");
         dprintf(2, "s> DISCONNECT %s FAIL\n", perfil.alias);
         return 1;
     }
@@ -177,7 +189,6 @@ int disconnect_gestiones(struct perfil perfil)
     
     if (archivo == NULL) 
     {
-        perror("Modify_value_impl(): Error al abrir el archivo\n");
         dprintf(2, "s> DISCONNECT %s FAIL\n", perfil.alias);
         return 3;
     }
@@ -190,7 +201,6 @@ int disconnect_gestiones(struct perfil perfil)
     fread(&perfil_antiguo, sizeof(struct perfil), 1, archivo);
 
     if (strcmp(perfil_antiguo.status, "Desconectado") == 0){
-        perror("El usuario ya está desconectado");
         dprintf(2, "s> DISCONNECT %s FAIL\n", perfil.alias);
         return 2;
     }
@@ -226,7 +236,7 @@ int is_connected(char* destinatario, int * port, char *IP)
     
     if (archivo == NULL) 
     {
-        perror("Error al abrir el archivo\n");
+        // printf("[DEBUG]Error al abrir el archivo\n");
         return 3;
     }
 
@@ -259,14 +269,14 @@ int obtener_ultimo_id(char*alias) {
     // Comprobamos la existencia del usuario origen
     if (access(nombre_fichero_dest_perfil, F_OK) != 0) 
     {
-        perror("Error: El usuario remitente no existe");
+        // printf("[DEBUG] El usuario remitente no existe");
         return 1;
     }
 
     FILE *archivo_perfil = fopen(nombre_fichero_dest_perfil, "r+b");
     if (archivo_perfil == NULL) 
     {
-        perror("send(): Error al abrir los mensajes pendientes del remitente \n");
+        // printf("[DEBUG] Error al abrir los mensajes pendientes del remitente \n");
         return 2;
     }
 
@@ -295,7 +305,7 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     // Comprobamos la existencia del usuario origen
     if (access(nombre_fichero, F_OK) != 0) 
     {
-        perror("Error: El usuario remitente no existe");
+        // printf("[DEBUG] El usuario remitente no existe");
         return 1;
     }
     sprintf(nombre_fichero_dest_msg, "%s%s%s", peticion_root_msg, destinatario, extension_mensajes);
@@ -303,7 +313,7 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     // Comprobamos la existencia del usuario destino
     if (access(nombre_fichero_dest_msg, F_OK) != 0) 
     {
-        perror("Error: El usuario destinatario msg no existe\n");
+        // printf("[DEBUG] El usuario destinatario msg no existe\n");
         return 1;
     }
 
@@ -312,14 +322,14 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     // Comprobamos la existencia del usuario destino
     if (access(nombre_fichero_dest_perf, F_OK) != 0) 
     {
-        perror("Error: El usuario destinatario perfil no existe\n");
+        // printf("[DEBUG] El usuario destinatario perfil no existe\n");
         return 1;
     }
 
     FILE *archivo_perfil = fopen(nombre_fichero_dest_perf, "r+b");
     if (archivo_perfil == NULL) 
     {
-        perror("send(): Error al abrir los mensajes pendientes del remitente \n");
+        // printf("[DEBUG] Error al abrir los mensajes pendientes del remitente \n");
         return 2;
     }
 
@@ -345,7 +355,7 @@ int send_to_server_gestiones(struct perfil perfil, char *destinatario, char *men
     FILE *archivo = fopen(nombre_fichero_dest_msg, "r+b");
     if (archivo == NULL) 
     {
-        perror("send(): Error al abrir los mensajes pendientes del destinatario \n");
+        // printf("[DEBUG] Error al abrir los mensajes pendientes del destinatario \n");
         return 2;
     }
 
@@ -627,7 +637,8 @@ int connected_users_gestiones(char* destinatario)
     
     if (archivo == NULL) 
     {
-        perror("Error al abrir el archivo\n");
+        // printf("[DEBUG]Error al abrir el archivo\n");
+        printf("CONNECTEDUSERS FAIL\n");
         return 2;
     }
 
@@ -639,7 +650,7 @@ int connected_users_gestiones(char* destinatario)
     
     fread(&perfil, sizeof(struct perfil), 1, archivo);
     if (strcmp(perfil.status, "Conectado") != 0){
-        perror("Error: El usuario no está conectado\n");
+        printf("CONNECTEDUSERS FAIL\n");
         return 1;
     }
 

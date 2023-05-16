@@ -195,8 +195,7 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
         perfil->alias = malloc(MAXSIZE);
         strcpy(perfil->alias, alias);
     } else {
-        
-        dprintf(2, "Codigo de op: %s\n", c_op);
+
         perror("El código de operación no es válido \n");
         
     }
@@ -239,12 +238,12 @@ void tratar_mensaje(void *sd_client_tratar)
         perfil.port = 0;
         resultado = register_gestiones(perfil);
         
-        // liberar memoria
+        
         
     
     } else if (strcmp(perfil.c_op, "UNREGISTER") == 0) {
         resultado = unregister_gestiones(perfil);
-        // liberar memoria
+        
 
         
     } else if (strcmp(perfil.c_op, "CONNECT") == 0) {
@@ -258,7 +257,7 @@ void tratar_mensaje(void *sd_client_tratar)
 
         }
 
-        // liberar memoria
+        
 
 
     }else if (strcmp(perfil.c_op, "DISCONNECT")==0){
@@ -284,8 +283,8 @@ void tratar_mensaje(void *sd_client_tratar)
             struct hostent *hp;
             char send_message[MAXSIZE] = "";
             //se obtiene la ip y el puerto del remitente
-            is_connected(perfil.alias, &port_remitente, IP_remitente);
-            
+            resultado = is_connected(perfil.alias, &port_remitente, IP_remitente);
+            if (resultado == 0) {
             //Se crea un socket por cada conexión
             int socket_thread = socket(AF_INET, SOCK_STREAM, 0);
             if (socket_thread == -1) {
@@ -329,6 +328,9 @@ void tratar_mensaje(void *sd_client_tratar)
             dprintf(2, "s> SEND MESSAGE %s FROM %s TO %s\n", last_id_ack, perfil.alias, alias_dest);
             free(last_id_ack);
             close(socket_thread);
+            } else {
+                resultado = 2;
+            }
         }else{
             // Se queda guarado en la lista de mensajes pendientes
             dprintf(2, "s> SEND MESSAGE FROM %s TO %s STORED\n", perfil.alias, alias_dest);
@@ -338,7 +340,6 @@ void tratar_mensaje(void *sd_client_tratar)
 
     } else if (strcmp(perfil.c_op, "CONNECTEDUSERS") == 0) {
 
-        dprintf(2, "[DEB] El usuaro que vamos a comprobar si esta conectado es %s", perfil.alias);
         resultado = connected_users_gestiones(perfil.alias);
         num_elements = count_elements();
         array_connected_users = create_array_connected_users();
@@ -463,7 +464,6 @@ int main(int argc, char *argv[]){
             return -1;
         }
 
-        //dprintf(2, "Hola he llegado aqui 2\n");
         if (pthread_create(&thid, &t_attr, (void *)tratar_mensaje, (void *)&sd_client) == 0) {
             // se espera a que el thread copie el mensaje 
 			pthread_mutex_lock(&mutex_mensaje);
