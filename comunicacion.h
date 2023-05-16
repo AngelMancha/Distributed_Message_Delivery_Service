@@ -18,7 +18,7 @@ struct perfil {
 
 
 struct respuesta {
-    int code_error;
+    char code_error[2];
 };
 
 struct mensaje{

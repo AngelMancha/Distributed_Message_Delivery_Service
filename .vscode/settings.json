@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "string.h": "c",
-        "errno.h": "c"
+        "errno.h": "c",
+        "gestiones.h": "c"
     }
 }

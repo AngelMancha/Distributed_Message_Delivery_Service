@@ -15,3 +15,4 @@ char **extraerRemitentes(char *destinatario, int numMensajes);
 int *extraerIDs(char *destinatario, int numMensajes);
 char **create_array_connected_users();
 int count_elements();
+int connected_users_gestiones(char *alias);

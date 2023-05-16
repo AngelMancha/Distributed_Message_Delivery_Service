@@ -547,7 +547,7 @@ char **create_array_connected_users() {
                 exit(1);
             }
             strcpy(usuarios[i], perfil.alias);
-            printf("El usuario %s está conectado\n",usuarios[i]);
+            //printf("El usuario %s está conectado\n",usuarios[i]);
             i = i + 1;
         }
         
@@ -558,6 +558,8 @@ char **create_array_connected_users() {
 
     // Cerrar el directorio
     closedir(dir);
+
+    dprintf(2, "s > CONNECTED USERS OK\n");
     return usuarios;
 }
 
@@ -594,11 +596,11 @@ int count_elements() {
         // Leer la estructura desde el archivo
         struct perfil perfil;
         fread(&perfil, sizeof(struct perfil), 1, archivo);
-        dprintf(2, "Revisando si el usuario está conectado\n");
+        //dprintf(2, "Revisando si el usuario está conectado\n");
         // Acceder al campo "status" y hacer algo con él
         if (strcmp(perfil.status, "Conectado") == 0) {
              contador += 1;
-            dprintf(2, "Valor de contador es %d\n", contador);
+            //dprintf(2, "Valor de contador es %d\n", contador);
 
         }
 
@@ -609,4 +611,39 @@ int count_elements() {
     // Cerrar el directorio
     closedir(dir);
     return contador;
+}
+
+
+
+int connected_users_gestiones(char* destinatario)
+{   
+
+    char nombre_fichero[50];
+
+    sprintf(nombre_fichero, "%s%s%s", peticion_root_perfil, destinatario, formato_fichero);
+
+    FILE *archivo = fopen(nombre_fichero, "r+b");
+    
+    if (archivo == NULL) 
+    {
+        perror("Error al abrir el archivo\n");
+        return 2;
+    }
+
+    // Mover el puntero de posición al inicio del archivo
+    fseek(archivo, 0, SEEK_SET);
+
+    // Leer el registro
+    struct perfil perfil;
+    fread(&perfil, sizeof(struct perfil), 1, archivo);
+
+    if (strcmp(perfil.status, "Conectado") != 0){
+        perror("Error: El usuario no está conectado\n");
+        return 1;
+    }
+
+    count_elements();
+
+    return 0;
+
 }

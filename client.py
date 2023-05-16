@@ -7,6 +7,7 @@ import pickle
 import socket
 import sys
 import threading
+import zeep
 
 
 class client :
@@ -77,11 +78,11 @@ class client :
                 print(f"Error al enviar los datos: {e}")
         finally:
             
-            result = int.from_bytes(sock.recv(4), 'big')
+            result = client.readLine(sock)
+            result = int(result)
+            
             sock.close()
 
-            #result = socket.ntohl(result)
-            print("RESULT IN CLIENT " + str(result))
         # Comprobamos los results
         if result == 0:
             window['_SERVER_'].print("s> REGISTER OK")
@@ -125,16 +126,15 @@ class client :
             sock.sendall(b'\0')    
 
             
-            
         except socket.error as e:
                 print(f"Error al enviar los datos: {e}")
         finally:
-            result = int.from_bytes(sock.recv(4), 'big')
+            result = client.readLine(sock)
+            result = int(result)
+            
             
             sock.close()
 
-            #result = socket.ntohl(result)
-            print("RESULT IN CLIENT " + str(result))
         # Comprobamos los results
         if result == 0:
             window['_SERVER_'].print("s> UNREGISTER OK")
@@ -147,10 +147,6 @@ class client :
             return client.RC.ERROR
         return client.RC.ERROR 
     
-        
-        
-        
-
 
     # *
     # * @param user - User name to connect to the system
@@ -199,7 +195,8 @@ class client :
             print("La direccion del servidor " + str(server_address.__getitem__(0)))
             
         finally:
-            result = int.from_bytes(client_socket.recv(4), 'big')
+            result = client.readLine(client_socket)
+            result = int(result)
             print("Resultado de connect ", result)
             client_socket.close()
 
@@ -251,7 +248,8 @@ class client :
         except socket.error as e:
                 print(f"Error al enviar los datos: {e}")
         finally:
-            result = int.from_bytes(sock.recv(4), 'big')
+            result = client.readLine(sock)
+            result = int(result)
             
             sock.close()
         
@@ -282,8 +280,11 @@ class client :
     # * @return ERROR the user does not exist or another error occurred
     @staticmethod
     def  send(user, message, window):
-        c_op = "SEND"
         
+        print("Enviando message al WS\n\n")
+        #Llamamos al serviciweb que se encarga de modificar el texto
+        message = client.ws_mod_msg(message)
+        print(f"El mensaje es {message}")
         # Creamos el socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -294,6 +295,7 @@ class client :
         
         # Enviamos la info al servidor
         try:
+            c_op = "SEND"
             ############ OP. CODE ############
             sock.sendall(c_op.encode("utf-8"))
             sock.sendall(b'\0')
@@ -315,7 +317,9 @@ class client :
         except socket.error as e:
                 print(f"Error al enviar los datos: {e}")
         finally:
-            result = int.from_bytes(sock.recv(4), 'big')
+            result = client.readLine(sock)
+            result = int(result)
+            
             id = int.from_bytes(sock.recv(4), 'big')
             
             sock.close()
@@ -370,33 +374,28 @@ class client :
             print(f"Error al enviar los datos: {e}")
         finally:
             ############ RESULT ############
-            result = int.from_bytes(sock.recv(4), 'big')
+            result = client.readLine(sock)
+            print(f"Result en Connected Users es {result}")
+            print(f"Longitud de result {len(result)}")
+            result = int(result)
+            
             lista_conectados = []
             if result == 0:
-            ############# CADENA NUM CLIENTES CONECTADOS ############
-                num_users_conected = sock.recv(1).decode('utf-8')
-                print(f"NUMERO DE CLIENTES CONECTADOS: {num_users_conected}")
+                ############# CADENA NUM CLIENTES CONECTADOS ############
+                num_users_conected = client.readLine(sock)
+                print(f"Num users conected {num_users_conected}")
+                print(f"Longitud de num_connected {len(num_users_conected)}")
                 ############# RECIBIR CLIENTES ############
-                    
-                for i in range(0, int(num_users_conected) + 1):
+                num_users_conected = int(num_users_conected) 
+                for i in range(0, num_users_conected):
+                    print("HAS LLEGADO DEPUES DE FOR")
                     client_data = client.readLine(sock)
+                    print(f"Client dataAAAAAA {client_data}")
+                    print("HAS LLEGADO DEPUES DE FOR 2")
                     lista_conectados.append(client_data)
+                
             
-            
-            # if result == 0:
-            #     num_users = sock.recv(1).decode('utf-8')
-            #     i = 1
-            #     string = "s> CONNECTED USERS (" + str(num_users) + " users connected) OK - "
-            #     string += client.readLine(sock)
-            #     while i < int(num_users):
-            #         user = client.readLine(sock)
-            #         string += ",  " + user
-            #         i += 1
-            
-        
             sock.close()
-
-            print("RESULT IN CLIENT " + str(result))
         # Comprobamos los resultados
         if result == 0:
             window['_SERVER_'].print("CONNECTED USERS {} OK - {}".format(num_users_conected, lista_conectados))
@@ -427,7 +426,6 @@ class client :
                 if server_send == "SEND_MESS_ACK":
                     id = client.readLine(connection)
                     window['_SERVER_'].print(f"s> > SEND MESSAGE {id} OK")
-                    #window['_SERVER_'].print(f"s> > SEND MESSAGE {id} FROM {client._alias} TO {client._dest}")
                 elif server_send == "SEND_MESSAGE":
                     print(f"Server connection {server_send}")
                     print('\nEmpezando a guardar mensaje...')
@@ -438,11 +436,6 @@ class client :
                     message_total = client.readLine(connection)
                     print(f"mensaje {message_total}")
                     window['_SERVER_'].print(f"s> > MESSAGE {id} FROM {alias} {message_total} END")
-                #window['_SERVER_'].print("s> > MESSAGE " + str(id) + " FROM " + alias + " " + message_total + "END")
-
-                # message1, message2 = message.split('\0')
-                # print(f"Received message: {message1}")
-                # print(f"Received message: {message2}")
 
 
             finally:
@@ -459,13 +452,21 @@ class client :
         message_total = ''
         while True:
             message = connection.recv(1).decode('utf-8')
+            # print(f"Mensaje recibido {message}")
             if message == '\0':
                 break
             message_total += message
-            
-            print(f"Received message: {message_total}")
+        print(f"Mensaje recibido {message}")
         return message_total
-                
+
+
+    @staticmethod
+    def ws_mod_msg(message):
+        wsdl_url = "http://localhost:5000/?wsdl"
+        soap = zeep.Client(wsdl=wsdl_url) 
+        result = soap.service.modify_text(message)
+
+        return result
 
     @staticmethod
     def window_register():

@@ -126,7 +126,6 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
 
     perfil->c_op = malloc(MAXSIZE);
     strcpy(perfil->c_op, c_op);
-
     // ************** REGISTER **************
     if (strcmp(c_op, "REGISTER")==0)
     {
@@ -190,6 +189,7 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
     } else if (strcmp(c_op, "CONNECTEDUSERS") == 0) {
         res = 0;    // devolvemos el valor del resultado como 0 ya que se ha recibido correctamente el c_op
     } else {
+        dprintf(2, "Codigo de op: %s\n", c_op);
         perror("El código de operación no es válido \n");
     }
 
@@ -329,29 +329,28 @@ void tratar_mensaje(void *sd_client_tratar)
 
 
     } else if (strcmp(perfil.c_op, "CONNECTEDUSERS") == 0) {
+
+        resultado = connected_users_gestiones(perfil.alias);
+        
         num_elements = count_elements();
         
         array_connected_users = create_array_connected_users();
-        dprintf(2, "[DEBUG] El numero de usuarios conectados es: %d\n\n", num_elements);
+        //dprintf(2, "[DEBUG] El numero de usuarios conectados es: %d\n\n", num_elements);
         
-        for (int i; i < num_elements; i++) {
-            dprintf(2,"[DEBUG] El usuario %s está conectado\n", array_connected_users[i]);
-        }
+        // for (int i; i < num_elements; i++) {
+        //     dprintf(2,"[DEBUG] El usuario %s está conectado\n", array_connected_users[i]);
+        // }
     
     }else {
         printf("Error: código de operación no válido.\n");
         exit(-1);
     }
 
-    respuesta.code_error = resultado;
-    
-    // Traducción de la respuesta a formato de red
-    respuesta.code_error = htonl(respuesta.code_error);
-
     // Se envian todos los campos de la respuesta
-    if (write (sd_client, &respuesta.code_error, sizeof(int)) < 0)
+    sprintf(respuesta.code_error, "%d", resultado);
+    if (sendMessage (sd_client, respuesta.code_error, strlen(respuesta.code_error)+1) < 0)
     {
-        perror("write: ");
+        perror("sendMessage: ");
     }
 
     else
@@ -372,7 +371,7 @@ void tratar_mensaje(void *sd_client_tratar)
         {
         //printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
         }
-    } else if (strcmp(perfil.c_op, "CONNECTEDUSERS") == 0) {
+    } else if (strcmp(perfil.c_op, "CONNECTEDUSERS") == 0 && resultado == 0) {
         char num_elements_char[MAXSIZE];
 
         sprintf(num_elements_char, "%d", num_elements);
@@ -382,14 +381,17 @@ void tratar_mensaje(void *sd_client_tratar)
         perror("write: ");
         }
         for (int i=0; i < num_elements; i++) {
+            //dprintf(2, "He enviado al usuario %s\n", array_connected_users[i]);
             if (sendMessage (sd_client, array_connected_users[i], strlen(array_connected_users[i])+1) < 0)
             {
             perror("write: ");
             }
-            dprintf(2, "He enviado al usuario %s\n", array_connected_users[i]);
+            
             //dprintf(2,"[DEBUG] El usuario %s está conectado\n", array_connected_users[i]);
             free(array_connected_users[i]);
         }
+
+        
         
     }
     
