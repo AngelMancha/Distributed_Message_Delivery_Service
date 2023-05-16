@@ -61,3 +61,50 @@ int read_message(int sd, char *message) {
         }
     return 0;
 }
+
+void reservar_memoria_perfil(struct perfil *perfil, int size) {
+    perfil->nombre = malloc(size * sizeof(char));
+    if (perfil->nombre == NULL) {
+        fprintf(stderr, "Failed to allocate memory for nombre\n");
+        exit(1);
+    }
+    perfil->alias = malloc(size * sizeof(char));
+    if (perfil->alias == NULL) {
+        fprintf(stderr, "Failed to allocate memory for alias\n");
+        exit(1);
+    }
+    perfil->fecha = malloc(size * sizeof(char));
+    if (perfil->fecha == NULL) {
+        fprintf(stderr, "Failed to allocate memory for fecha\n");
+        exit(1);
+    }
+    perfil->c_op = malloc(size * sizeof(char));
+    if (perfil->c_op == NULL) {
+        fprintf(stderr, "Failed to allocate memory for c_op\n");
+        exit(1);
+    }
+    perfil->status = malloc(size * sizeof(char));
+    if (perfil->status == NULL) {
+        fprintf(stderr, "Failed to allocate memory for status\n");
+        exit(1);
+    }
+    perfil->IP = malloc(size * sizeof(char));
+    if (perfil->IP == NULL) {
+        fprintf(stderr, "Failed to allocate memory for IP\n");
+        exit(1);
+    }
+}
+
+void liberar_memoria_perfil(struct perfil *perfil) {
+    if (perfil == NULL) {
+        return;
+    }
+
+    free(perfil->nombre);
+    free(perfil->alias);
+    free(perfil->fecha);
+    free(perfil->c_op);
+    free(perfil->status);
+    free(perfil->IP);
+
+}

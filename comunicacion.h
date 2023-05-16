@@ -12,7 +12,6 @@ struct perfil {
     char * status;
     char *IP;
     int port;
-    struct mensaje *mensajes;
     int last_id;
 };
 

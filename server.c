@@ -89,7 +89,7 @@ int envio_mensajes_pendientes(char *alias, char *IP, int port, char *alias_remit
             perror("write: ");
             return 3;
         }
-        
+        free(id);
         
         // ************ ENVIAR MENSAJE ************
         if (sendMessage(socket_thread, cadena_pendientes[i], strlen(cadena_pendientes[i])+1) < 0)
@@ -134,6 +134,7 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
         res = read_date(sd_client, date, perfil);
 
          // Reserva de memoria
+       
         perfil->alias = malloc(MAXSIZE);
         strcpy(perfil->alias, alias);
 
@@ -141,7 +142,7 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
     } else if (strcmp(c_op, "UNREGISTER")==0) {
 
         res = read_alias(sd_client, alias);
-        perfil->alias = malloc(MAXSIZE);
+       perfil->alias = malloc(MAXSIZE);
         strcpy(perfil->alias, alias);
 
 
@@ -158,8 +159,8 @@ int recibir_msj_socket(int sd_client, struct perfil *perfil, char *alias_dest, c
         res = read_port(sd_client, port);
         
         // Reserva de memoria
-        perfil->alias = malloc(MAXSIZE);
-        perfil->IP = malloc(MAXSIZE);
+         perfil->alias = malloc(MAXSIZE);
+         perfil->IP = malloc(MAXSIZE);
         strcpy(perfil->alias, alias);
         perfil->port = atoi(port);
         strcpy(perfil->IP, ipstr);
@@ -212,6 +213,7 @@ void tratar_mensaje(void *sd_client_tratar)
     char alias_dest[MAXSIZE];
     char message[MAXSIZE];
     
+    //reservar_memoria_perfil(&perfil, MAXSIZE);
     pthread_mutex_lock(&mutex_mensaje);
 
     sd_client = (* (int *) sd_client_tratar);
@@ -263,17 +265,17 @@ void tratar_mensaje(void *sd_client_tratar)
         int connected = is_connected(alias_dest, &port, IP);
 
 
-        // Si una vez enviados al servidor, se comprueba que el destinatario está conectado,
-        //se le envían automáticametne
+        // Si una vez enviados al servidor, se comprueba que el destinatario está conectado, se le envían automáticametne
         if (connected == 0 && num_mensajes_pendientes(alias_dest) > 0) {
             resultado = envio_mensajes_pendientes(alias_dest, IP, port, perfil.alias);
             
+            //Se envía el ACK:
 
-            //Se envía el ACK
             int port_remitente;
             char IP_remitente[MAXSIZE];
             struct hostent *hp;
             char send_message[MAXSIZE] = "";
+            //se obtiene la ip y el puerto del remitente
             is_connected(perfil.alias, &port_remitente, IP_remitente);
             
             //Se crea un socket por cada conexión
@@ -316,30 +318,21 @@ void tratar_mensaje(void *sd_client_tratar)
                 resultado = 3;
             }
             
-            dprintf(2, "SEND MESSAGE %s FROM %s TO %s\n", last_id_ack, perfil.alias, alias_dest);
+            dprintf(2, "s> SEND MESSAGE %s FROM %s TO %s\n", last_id_ack, perfil.alias, alias_dest);
             free(last_id_ack);
             close(socket_thread);
         }else{
             // Se queda guarado en la lista de mensajes pendientes
-            dprintf(2, "SEND MESSAGE FROM %s TO %s STORED\n", perfil.alias, alias_dest);
+            dprintf(2, "s> SEND MESSAGE FROM %s TO %s STORED\n", perfil.alias, alias_dest);
         }
-        
 
-        // liberar memoria
 
 
     } else if (strcmp(perfil.c_op, "CONNECTEDUSERS") == 0) {
 
         resultado = connected_users_gestiones(perfil.alias);
-        
         num_elements = count_elements();
-        
         array_connected_users = create_array_connected_users();
-        //dprintf(2, "[DEBUG] El numero de usuarios conectados es: %d\n\n", num_elements);
-        
-        // for (int i; i < num_elements; i++) {
-        //     dprintf(2,"[DEBUG] El usuario %s está conectado\n", array_connected_users[i]);
-        // }
     
     }else {
         printf("Error: código de operación no válido.\n");
@@ -353,24 +346,16 @@ void tratar_mensaje(void *sd_client_tratar)
         perror("sendMessage: ");
     }
 
-    else
-    {
-        //printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
-    }
-
+    // por ultimo, en el caso de SEND y CONNECTEDUSERS, además del código de error hay que enviar el id del mensaje en el caso del SEND
+    // y el número de usuarios conectados y la lista de usuarios conectados en el caso de CONNECTEDUSERS
     if (strcmp(perfil.c_op, "SEND") == 0) {
         int last_id = obtener_ultimo_id(alias_dest);
-        //dprintf(2, "last_id: %d\n", last_id);
         last_id = htonl(last_id);
         if (write (sd_client, &last_id, sizeof(int)) < 0)
         {
         perror("write: ");
         }
 
-        else
-        {
-        //printf("Respuesta enviada CORRECTAMENTE JAJAJA YA QUISIERAS\n");
-        }
     } else if (strcmp(perfil.c_op, "CONNECTEDUSERS") == 0 && resultado == 0) {
         char num_elements_char[MAXSIZE];
 
@@ -381,21 +366,18 @@ void tratar_mensaje(void *sd_client_tratar)
         perror("write: ");
         }
         for (int i=0; i < num_elements; i++) {
-            //dprintf(2, "He enviado al usuario %s\n", array_connected_users[i]);
             if (sendMessage (sd_client, array_connected_users[i], strlen(array_connected_users[i])+1) < 0)
             {
             perror("write: ");
             }
-            
-            //dprintf(2,"[DEBUG] El usuario %s está conectado\n", array_connected_users[i]);
             free(array_connected_users[i]);
         }
 
-        
-        
     }
     
+    //liberar_memoria_perfil(&perfil);
     close (sd_client);
+
 	pthread_exit(0);
 }
 
@@ -464,7 +446,7 @@ int main(int argc, char *argv[]){
 	pthread_attr_setdetachstate(&t_attr, PTHREAD_CREATE_DETACHED);
     mensaje_no_copiado = true;
 
-    while(1) {
+    while(1) { 
 
         sd_client = accept(sd_server, (struct sockaddr *)&address, (socklen_t*)&addrlen);
         if (sd_client <= 0) {

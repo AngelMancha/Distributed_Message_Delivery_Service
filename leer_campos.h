@@ -18,3 +18,5 @@ int read_alias(int sd_client, char *alias);
 int read_date(int sd, char *date, struct perfil *perfil);
 int read_port(int sd, char * port);
 int read_message(int sd, char *message);
+void reservar_memoria_perfil(struct perfil *perfil, int size);
+void liberar_memoria_perfil(struct perfil *perfil);
