@@ -1,3 +1,4 @@
+
 # Distibuted Message Delivery Service
 
 The objective of this work is to develop a message notification service between users connected to a network through the use of sockets. The functionalities that will be developed are to register users (register), unregister users (unregister), connect users to the application (connect), disconnect users (disconnect), send messages (send), and see the connected users (connected users).
@@ -5,10 +6,10 @@ The objective of this work is to develop a message notification service between 
 The design follows a client-service structure that communicates through sockets and has the particularity of having been developed in Python (the client along with the interface) and C (the server). Furthermore, a web service has been developed in order to assist in the sending of messages.
 
 ## Demo
-![visualizador](www/media/inicio.png)
-![visualizador](www/media/juan.png)
-![visualizador](www/media/maira.png)
-![visualizador](www/media/ambos.png)
+![visualizador](media/inicio.png)
+![visualizador](media/juan.png)
+![visualizador](media/maria.png)
+![visualizador](media/ambos.png)
 ## Functionalities
 
 - **Register**: It registers an user in the service with an alias and birth date.
